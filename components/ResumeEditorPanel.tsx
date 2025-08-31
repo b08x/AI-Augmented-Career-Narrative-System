@@ -1,20 +1,97 @@
-
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { UndoIcon } from './icons/UndoIcon';
 
 interface ResumeEditorPanelProps {
     editedResume: string;
+    previousResume: string;
     onResumeEdit: (newText: string) => void;
     onUndo: () => void;
     canUndo: boolean;
 }
 
-export const ResumeEditorPanel: React.FC<ResumeEditorPanelProps> = ({ editedResume, onResumeEdit, onUndo, canUndo }) => {
-    
+const DiffView: React.FC<{ oldText: string; newText: string }> = ({ oldText, newText }) => {
+    const diff = useMemo(() => {
+        const oldLines = oldText.split('\n');
+        const newLines = newText.split('\n');
+        const diffResult = [];
+        const matrix = Array(oldLines.length + 1).fill(null).map(() => Array(newLines.length + 1).fill(0));
+
+        for (let i = 1; i <= oldLines.length; i++) {
+            for (let j = 1; j <= newLines.length; j++) {
+                if (oldLines[i - 1] === newLines[j - 1]) {
+                    matrix[i][j] = matrix[i - 1][j - 1] + 1;
+                } else {
+                    matrix[i][j] = Math.max(matrix[i - 1][j], matrix[i][j - 1]);
+                }
+            }
+        }
+
+        let i = oldLines.length;
+        let j = newLines.length;
+
+        while (i > 0 || j > 0) {
+            if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
+                diffResult.unshift({ type: 'common', line: oldLines[i - 1] });
+                i--;
+                j--;
+            } else if (j > 0 && (i === 0 || matrix[i][j - 1] >= matrix[i - 1][j])) {
+                diffResult.unshift({ type: 'added', line: newLines[j - 1] });
+                j--;
+            } else if (i > 0 && (j === 0 || matrix[i][j - 1] < matrix[i - 1][j])) {
+                diffResult.unshift({ type: 'removed', line: oldLines[i - 1] });
+                i--;
+            } else {
+                break;
+            }
+        }
+        return diffResult;
+    }, [oldText, newText]);
+
+    return (
+        <pre className="w-full h-full min-h-[300px] p-4 bg-background/50 border-2 border-slate/50 rounded-md whitespace-pre-wrap font-mono text-sm overflow-y-auto">
+            {diff.map((item, index) => {
+                const style = {
+                    'added': 'bg-mint/20 text-text-primary',
+                    'removed': 'bg-primary/20 text-text-secondary line-through',
+                    'common': 'bg-transparent text-text-secondary'
+                }[item.type];
+                const prefix = {
+                    'added': '+ ',
+                    'removed': '- ',
+                    'common': '  '
+                }[item.type];
+                return (
+                    <div key={index} className={`${style} transition-colors`}>
+                        <span className="select-none mr-2">{prefix}</span>
+                        <span>{item.line || '\u00A0'}</span>
+                    </div>
+                );
+            })}
+        </pre>
+    );
+};
+
+
+export const ResumeEditorPanel: React.FC<ResumeEditorPanelProps> = ({ editedResume, previousResume, onResumeEdit, onUndo, canUndo }) => {
+    const [viewMode, setViewMode] = useState<'edit' | 'diff'>('edit');
+
+    useEffect(() => {
+        // When a new draft is generated, switch to diff view to show changes
+        if (previousResume !== editedResume) {
+            setViewMode('diff');
+        }
+    }, [editedResume, previousResume]);
+
     const handleFinalize = () => {
-        // In a real app, this might save or download the file.
-        alert("Resume draft finalized! (In a real app, this would save/download)");
-        console.log("Final Resume Content:\n", editedResume);
+        const blob = new Blob([editedResume], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = "resume_draft.txt";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     return (
@@ -22,6 +99,14 @@ export const ResumeEditorPanel: React.FC<ResumeEditorPanelProps> = ({ editedResu
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-slate">Resume Editor</h3>
                 <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => setViewMode(viewMode === 'edit' ? 'diff' : 'edit')}
+                        disabled={previousResume === editedResume}
+                        className="bg-slate hover:bg-slate/80 text-white font-semibold py-2 px-4 rounded-md transition-colors text-sm disabled:bg-slate/50 disabled:cursor-not-allowed"
+                        title={viewMode === 'edit' ? 'View Changes' : 'Edit Resume'}
+                    >
+                        {viewMode === 'edit' ? 'View Changes' : 'Edit Resume'}
+                    </button>
                     <button 
                         onClick={onUndo} 
                         disabled={!canUndo} 
@@ -34,16 +119,20 @@ export const ResumeEditorPanel: React.FC<ResumeEditorPanelProps> = ({ editedResu
                         onClick={handleFinalize}
                         className="bg-primary hover:bg-primary/80 text-white font-semibold py-2 px-4 rounded-md transition-colors text-sm"
                     >
-                        Finalize Draft
+                        Download Draft
                     </button>
                 </div>
             </div>
-            <textarea
-                value={editedResume}
-                onChange={(e) => onResumeEdit(e.target.value)}
-                placeholder="Your resume text will appear here for editing..."
-                className="w-full h-full min-h-[300px] p-4 bg-background/50 border-2 border-slate/50 rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary font-mono text-sm"
-            />
+            {viewMode === 'edit' ? (
+                <textarea
+                    value={editedResume}
+                    onChange={(e) => onResumeEdit(e.target.value)}
+                    placeholder="Your resume text will appear here for editing..."
+                    className="w-full h-full min-h-[300px] p-4 bg-background/50 border-2 border-slate/50 rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary font-mono text-sm"
+                />
+            ) : (
+                <DiffView oldText={previousResume} newText={editedResume} />
+            )}
         </div>
     );
 };

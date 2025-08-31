@@ -1,15 +1,27 @@
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { ChatMessage } from '../types';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { BotIcon } from './icons/BotIcon';
+import { UserIcon } from './icons/UserIcon';
+import { MicrophoneIcon } from './icons/MicrophoneIcon';
+import { StopIcon } from './icons/StopIcon';
+import { UploadIcon } from './icons/UploadIcon';
+import { SendIcon } from './icons/SendIcon';
+
+declare global {
+    interface Window {
+        SpeechRecognition: any;
+        webkitSpeechRecognition: any;
+    }
+}
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 interface ResumeFeedbackPanelProps {
     resumeText: string;
     feedback: ChatMessage[];
     isLoading: boolean;
     onInitialAnalysis: () => void;
-    onSendMessage: (message: string) => void; // Kept for future "add more feedback" functionality
+    onSendMessage: (message: string) => void;
     selectedFeedbackIds: Set<string>;
     onToggleFeedbackSelection: (id: string) => void;
     feedbackContext: Record<string, string>;
@@ -30,12 +42,12 @@ const renderMessageContent = (text: string) => {
     });
 };
 
-
 export const ResumeFeedbackPanel: React.FC<ResumeFeedbackPanelProps> = ({
     resumeText,
     feedback,
     isLoading,
     onInitialAnalysis,
+    onSendMessage,
     selectedFeedbackIds,
     onToggleFeedbackSelection,
     feedbackContext,
@@ -44,6 +56,74 @@ export const ResumeFeedbackPanel: React.FC<ResumeFeedbackPanelProps> = ({
     onUpdateDraft
 }) => {
     const panelEndRef = useRef<HTMLDivElement>(null);
+    const [chatInput, setChatInput] = useState('');
+    const [isRecording, setIsRecording] = useState(false);
+    const recognitionRef = useRef<any>(null);
+
+    useEffect(() => {
+        if (SpeechRecognition) {
+            recognitionRef.current = new SpeechRecognition();
+            const recognition = recognitionRef.current;
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onstart = () => setIsRecording(true);
+            recognition.onend = () => setIsRecording(false);
+            recognition.onerror = (event: any) => {
+                console.error('Speech recognition error:', event.error);
+                setIsRecording(false);
+            };
+            recognition.onresult = (event: any) => {
+                let finalTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    }
+                }
+                if (finalTranscript) {
+                    setChatInput(prev => (prev ? prev + ' ' : '') + finalTranscript);
+                }
+            };
+        }
+        return () => {
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+            }
+        };
+    }, []);
+
+    const toggleRecording = useCallback(() => {
+        const recognition = recognitionRef.current;
+        if (!recognition) {
+            alert("Speech recognition is not supported in your browser.");
+            return;
+        }
+        if (isRecording) {
+            recognition.stop();
+        } else {
+            recognition.start();
+        }
+    }, [isRecording]);
+
+    const handleContentFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target?.result as string;
+                setChatInput(prev => prev ? `${prev}\n\n--- FILE: ${file.name} ---\n${text}` : text);
+            };
+            reader.readAsText(file);
+        }
+        event.target.value = '';
+    };
+
+    const handleSend = () => {
+        if (chatInput.trim()) {
+            onSendMessage(chatInput);
+            setChatInput('');
+        }
+    };
 
     useEffect(() => {
         panelEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -80,38 +160,50 @@ export const ResumeFeedbackPanel: React.FC<ResumeFeedbackPanelProps> = ({
         <div className="bg-charcoal rounded-lg p-6 border border-slate/50 flex flex-col h-full max-h-[800px]">
             <h3 className="text-lg font-semibold text-slate mb-4 text-center">Interactive Resume Feedback</h3>
             <div className="flex-grow overflow-y-auto pr-2 space-y-4">
-                {feedback.filter(msg => msg.role === 'model').map((msg) => (
-                    <div key={msg.id} className={`p-4 rounded-xl transition-all duration-300 ${selectedFeedbackIds.has(msg.id) ? 'bg-primary/20 border-primary' : 'bg-background/50 border-slate/50'} border`}>
-                        <div className="flex items-start gap-4">
-                            <input
-                                type="checkbox"
-                                id={`feedback-${msg.id}`}
-                                checked={selectedFeedbackIds.has(msg.id)}
-                                onChange={() => onToggleFeedbackSelection(msg.id)}
-                                className="mt-1 h-5 w-5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer flex-shrink-0"
-                            />
-                            <div className="flex-grow">
-                                <label htmlFor={`feedback-${msg.id}`} className="cursor-pointer">
-                                    <div className="flex items-start gap-2">
-                                        <BotIcon className="h-6 w-6 text-mint flex-shrink-0" />
-                                        <div className="text-text-secondary text-sm prose prose-invert max-w-none prose-p:my-0 prose-li:my-0">
-                                            {renderMessageContent(msg.text)}
-                                        </div>
+                 {feedback.map((msg) => (
+                    <div key={msg.id} className={`flex items-start gap-4 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                         {msg.role === 'model' && (
+                            <div className={`p-4 rounded-xl transition-all duration-300 w-full ${selectedFeedbackIds.has(msg.id) ? 'bg-primary/20 border-primary' : 'bg-background/50 border-slate/50'} border`}>
+                                <div className="flex items-start gap-4">
+                                    <input
+                                        type="checkbox"
+                                        id={`feedback-${msg.id}`}
+                                        checked={selectedFeedbackIds.has(msg.id)}
+                                        onChange={() => onToggleFeedbackSelection(msg.id)}
+                                        className="mt-1 h-5 w-5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer flex-shrink-0"
+                                    />
+                                    <div className="flex-grow">
+                                        <label htmlFor={`feedback-${msg.id}`} className="cursor-pointer">
+                                            <div className="flex items-start gap-2">
+                                                <BotIcon className="h-6 w-6 text-mint flex-shrink-0" />
+                                                <div className="text-text-secondary text-sm prose prose-invert max-w-none prose-p:my-0 prose-li:my-0">
+                                                    {renderMessageContent(msg.text)}
+                                                </div>
+                                            </div>
+                                        </label>
+                                        {selectedFeedbackIds.has(msg.id) && (
+                                            <div className="mt-3 animate-fade-in">
+                                                <textarea
+                                                    value={feedbackContext[msg.id] || ''}
+                                                    onChange={(e) => onFeedbackContextChange(msg.id, e.target.value)}
+                                                    placeholder="Add context for the AI (optional)..."
+                                                    className="w-full text-sm p-2 bg-background/50 border border-slate/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary"
+                                                    rows={2}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
-                                </label>
-                                {selectedFeedbackIds.has(msg.id) && (
-                                    <div className="mt-3 animate-fade-in">
-                                        <textarea
-                                            value={feedbackContext[msg.id] || ''}
-                                            onChange={(e) => onFeedbackContextChange(msg.id, e.target.value)}
-                                            placeholder="Add context for the AI (optional)..."
-                                            className="w-full text-sm p-2 bg-background/50 border border-slate/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary"
-                                            rows={2}
-                                        />
-                                    </div>
-                                )}
+                                </div>
                             </div>
-                        </div>
+                        )}
+                        {msg.role === 'user' && (
+                           <div className="flex items-start gap-2 max-w-[80%]">
+                                <div className="bg-primary/80 rounded-lg p-3 text-sm text-white prose prose-invert max-w-none prose-p:my-0">
+                                    {renderMessageContent(msg.text)}
+                                </div>
+                                <UserIcon className="h-6 w-6 text-slate flex-shrink-0"/>
+                           </div>
+                        )}
                     </div>
                 ))}
                  {isLoading && (
@@ -125,6 +217,39 @@ export const ResumeFeedbackPanel: React.FC<ResumeFeedbackPanelProps> = ({
                    </div>
                 )}
                 <div ref={panelEndRef} />
+            </div>
+             <div className="mt-4 border-t border-slate/50 pt-4 flex flex-col gap-2">
+                 <div className="relative">
+                     <textarea
+                         value={chatInput}
+                         onChange={(e) => setChatInput(e.target.value)}
+                         onKeyDown={(e) => {
+                             if (e.key === 'Enter' && !e.shiftKey) {
+                                 e.preventDefault();
+                                 handleSend();
+                             }
+                         }}
+                         placeholder="Ask for more feedback or provide context..."
+                         className="w-full text-sm p-3 pr-24 bg-background/50 border border-slate/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary resize-none"
+                         rows={2}
+                     />
+                     <div className="absolute top-1/2 -translate-y-1/2 right-3 flex items-center gap-1">
+                         <button onClick={toggleRecording} disabled={!recognitionRef.current} title={isRecording ? "Stop" : "Record"} className={`p-2 rounded-full transition-colors ${isRecording ? 'bg-primary text-white animate-pulse' : 'bg-slate/50 hover:bg-slate/70 text-text-primary'}`}>
+                             {isRecording ? <StopIcon /> : <MicrophoneIcon />}
+                         </button>
+                         <label htmlFor="feedback-file-upload" className="cursor-pointer p-2 rounded-full bg-slate/50 hover:bg-slate/70 text-text-primary" title="Upload File">
+                             <UploadIcon />
+                         </label>
+                         <input id="feedback-file-upload" type="file" className="hidden" onChange={handleContentFileChange} accept=".js,.jsx,.ts,.tsx,.py,.rb,.sh,.md,.txt" />
+                     </div>
+                 </div>
+                 <button
+                    onClick={handleSend}
+                    disabled={isLoading || !chatInput.trim()}
+                    className="w-full flex items-center justify-center gap-2 bg-slate hover:bg-slate/80 disabled:bg-slate/50 text-white font-semibold py-2 px-4 rounded-md transition-colors"
+                 >
+                     <SendIcon className="h-5 w-5"/> Send
+                 </button>
             </div>
             <div className="mt-4 border-t border-slate/50 pt-4">
                 <button

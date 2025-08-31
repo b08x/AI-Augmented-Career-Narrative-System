@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { NarrativeOutput, KeyExperience } from '../types';
 import { Loader } from './Loader';
@@ -7,7 +6,6 @@ import { NarrativeCard } from './NarrativeCard';
 interface OutputPanelProps {
     isLoading: boolean;
     narrativeOutput: NarrativeOutput | null;
-    rawTruth: string;
     onKeyExperienceReorder: (reorderedBreakdown: KeyExperience[]) => void;
 }
 
@@ -22,7 +20,7 @@ const renderWithBold = (text: string) => {
 };
 
 
-export const OutputPanel: React.FC<OutputPanelProps> = ({ isLoading, narrativeOutput, rawTruth, onKeyExperienceReorder }) => {
+export const OutputPanel: React.FC<OutputPanelProps> = ({ isLoading, narrativeOutput, onKeyExperienceReorder }) => {
     const [draggedOverIndex, setDraggedOverIndex] = React.useState<number | null>(null);
     const draggedItemIndex = React.useRef<number | null>(null);
 
@@ -79,11 +77,6 @@ export const OutputPanel: React.FC<OutputPanelProps> = ({ isLoading, narrativeOu
 
     return (
         <div className="space-y-6 animate-fade-in h-full">
-            <NarrativeCard title="Literal Description (Your Input)" speakableText={rawTruth}>
-                 {rawTruth.split('\n').map((paragraph, index) => (
-                    <p key={index}>{paragraph ? renderWithBold(paragraph) : '\u00A0'}</p> 
-                ))}
-            </NarrativeCard>
             <NarrativeCard 
                 title="Generated Corporate Narrative" 
                 isPrimary 
@@ -115,7 +108,6 @@ export const OutputPanel: React.FC<OutputPanelProps> = ({ isLoading, narrativeOu
                         </div>
                     ))}
                 </div>
-            {/* FIX: Corrected typo in closing tag from NarraviteCard to NarrativeCard */}
             </NarrativeCard>
         </div>
     );

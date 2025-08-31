@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import type { ChatMessage } from '../types';
 import { BotIcon } from './icons/BotIcon';
@@ -22,7 +21,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ title, messages, isLoading, tit
     }, [messages, isLoading]);
 
     return (
-        <div className="bg-background/50 border border-slate/50 rounded-xl p-4 flex flex-col flex-grow h-1/2">
+        <div className="bg-background/50 border border-slate/50 rounded-xl p-4 flex flex-col flex-grow">
             <div className="flex items-center mb-4">
                 <h3 className={`text-xl font-bold ${titleColor}`}>{title}</h3>
             </div>

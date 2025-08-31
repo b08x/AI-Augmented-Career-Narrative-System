@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { Header } from './components/Header';
 import { generateCareerNarrative, generateResumeFeedback, generateResumeDraft } from './services/geminiService';
@@ -197,7 +196,11 @@ const App: React.FC = () => {
         try {
             const selectedMessages = resumeFeedback.filter(msg => selectedFeedbackIds.has(msg.id));
             const newDraft = await generateResumeDraft(editedResume, selectedMessages, feedbackContext);
-            handleResumeEdit(newDraft); // This updates the editor and history
+            
+            // To properly track history for diffing, we must update both history and current state
+            setResumeHistory(prev => [...prev, newDraft]);
+            setEditedResume(newDraft);
+            
             setSelectedFeedbackIds(new Set()); // Clear selection after use
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
@@ -259,6 +262,7 @@ const App: React.FC = () => {
                     onUpdateDraft={handleUpdateResumeDraft}
                     // Resume Editor Props
                     editedResume={editedResume}
+                    previousResume={resumeHistory.length > 1 ? resumeHistory[resumeHistory.length - 2] : resumeText}
                     onResumeEdit={handleResumeEdit}
                     onUndo={handleResumeUndo}
                     canUndo={resumeHistory.length > 1}

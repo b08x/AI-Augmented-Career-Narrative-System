@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { InputPanel } from '../components/InputPanel';
 import { OutputPanel } from '../components/OutputPanel';
@@ -40,6 +39,7 @@ interface WorkbenchPageProps {
     onUpdateDraft: () => void;
     // Resume Editor Props
     editedResume: string;
+    previousResume: string;
     onResumeEdit: (newText: string) => void;
     onUndo: () => void;
     canUndo: boolean;
@@ -74,6 +74,7 @@ export const WorkbenchPage: React.FC<WorkbenchPageProps> = (props) => {
                         isLoading={props.isLoading}
                         error={null} // Don't show generate error here
                         handleGenerate={props.handleGenerate}
+                        isGenerated={true}
                     />
                 </div>
                  <button 
@@ -91,19 +92,18 @@ export const WorkbenchPage: React.FC<WorkbenchPageProps> = (props) => {
                     <OutputPanel 
                         isLoading={props.isLoading} 
                         narrativeOutput={props.narrativeOutput} 
-                        rawTruth={props.rawTruth}
                         onKeyExperienceReorder={props.onKeyExperienceReorder}
                     />
                      {props.narrativeOutput && !props.isLoading && (
                         <>
                             <ResumeEditorPanel
                                 editedResume={props.editedResume}
+                                previousResume={props.previousResume}
                                 onResumeEdit={props.onResumeEdit}
                                 onUndo={props.onUndo}
                                 canUndo={props.canUndo}
                             />
                             <ResumeFeedbackPanel
-                                // FIX: Removed unsupported 'narrativeOutput' prop as it's not defined in ResumeFeedbackPanelProps.
                                 resumeText={props.resumeText}
                                 feedback={props.feedback}
                                 isLoading={props.isFeedbackLoading}

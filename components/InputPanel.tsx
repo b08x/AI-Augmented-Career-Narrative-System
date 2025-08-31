@@ -1,16 +1,6 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { MicrophoneIcon } from './icons/MicrophoneIcon';
-import { StopIcon } from './icons/StopIcon';
+import React, { useState, useCallback } from 'react';
 import { UploadIcon } from './icons/UploadIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
-
-declare global {
-    interface Window {
-        SpeechRecognition: any;
-        webkitSpeechRecognition: any;
-    }
-}
 
 interface InputPanelProps {
     rawTruth: string;
@@ -25,14 +15,7 @@ interface InputPanelProps {
     isLoading: boolean;
     error: string | null;
     handleGenerate: () => void;
-}
-
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const recognition = SpeechRecognition ? new SpeechRecognition() : null;
-
-if (recognition) {
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    isGenerated?: boolean;
 }
 
 export const InputPanel: React.FC<InputPanelProps> = ({
@@ -47,24 +30,11 @@ export const InputPanel: React.FC<InputPanelProps> = ({
     setResumeText,
     isLoading,
     error,
-    handleGenerate
+    handleGenerate,
+    isGenerated = false
 }) => {
-    const [isRecording, setIsRecording] = useState(false);
     const [isFetchingCommits, setIsFetchingCommits] = useState(false);
     const [commitError, setCommitError] = useState<string | null>(null);
-
-    const handleContentFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const text = e.target?.result as string;
-                setRawTruth(prev => prev ? `${prev}\n\n--- FILE CONTENT (${file.name}) ---\n${text}` : text);
-            };
-            reader.readAsText(file);
-        }
-        event.target.value = ''; // Reset file input
-    };
 
     const handleResumeFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -121,55 +91,14 @@ export const InputPanel: React.FC<InputPanelProps> = ({
         }
     }, [gitRepoUrl, setRawTruth]);
 
-
-    const toggleRecording = useCallback(() => {
-        if (!recognition) {
-            alert("Speech recognition is not supported in your browser.");
-            return;
-        }
-        if (isRecording) {
-            recognition.stop();
-        } else {
-            recognition.start();
-        }
-    }, [isRecording]);
-
-    useEffect(() => {
-        if (!recognition) return;
-
-        recognition.onstart = () => setIsRecording(true);
-        recognition.onend = () => setIsRecording(false);
-        recognition.onerror = (event) => {
-            console.error('Speech recognition error:', event.error);
-            setIsRecording(false);
-        };
-        recognition.onresult = (event) => {
-            let interimTranscript = '';
-            let finalTranscript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
-                }
-            }
-             setRawTruth(prev => prev.slice(0, prev.length - interimTranscript.length) + finalTranscript + interimTranscript);
-        };
-
-        return () => {
-            if (recognition) recognition.stop();
-        };
-    }, [setRawTruth]);
-
     return (
         <div className="bg-charcoal rounded-lg p-6 shadow-xl flex flex-col gap-6 h-full">
-            {/* Literal Description */}
-            <div className="flex flex-col h-full">
-                <label htmlFor="rawTruth" className="text-lg font-semibold text-text-primary mb-2">
+            <details open={!isGenerated} className="group">
+                <summary className="text-lg font-semibold text-text-primary list-none group-open:mb-2 cursor-pointer">
                     Literal Description
-                </label>
+                </summary>
                 <p className="text-sm text-slate mb-4">
-                    Explain what you built, why you built it, and the challenges you faced. You can also fetch commit history from a public GitHub repo below.
+                    Explain what you built, why you built it, and the challenges you faced.
                 </p>
                 <div className="relative flex-grow min-h-[200px]">
                     <textarea
@@ -177,27 +106,17 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                         value={rawTruth}
                         onChange={(e) => setRawTruth(e.target.value)}
                         placeholder="e.g., 'I built a small script to automate my home lighting...'"
-                        className="w-full h-full p-4 pr-12 bg-background/50 border-2 border-slate/50 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary"
+                        className="w-full h-full p-4 bg-background/50 border-2 border-slate/50 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary"
                         disabled={isLoading}
                     />
-                    <div className="absolute top-3 right-3 flex flex-col gap-2">
-                        <button onClick={toggleRecording} disabled={isLoading || !recognition} title={isRecording ? "Stop Recording" : "Start Recording"} className={`p-2 rounded-full transition-colors ${isRecording ? 'bg-primary text-white animate-pulse' : 'bg-slate hover:bg-slate/80 text-text-primary'} disabled:bg-slate/50`}>
-                            {isRecording ? <StopIcon /> : <MicrophoneIcon />}
-                        </button>
-                         <label htmlFor="file-upload" className="cursor-pointer p-2 rounded-full bg-slate hover:bg-slate/80 text-text-primary" title="Upload Code File">
-                             <UploadIcon />
-                         </label>
-                         <input id="file-upload" type="file" className="hidden" onChange={handleContentFileChange} accept=".js,.jsx,.ts,.tsx,.py,.rb,.sh,.md,.txt" disabled={isLoading} />
-                    </div>
                 </div>
-            </div>
+            </details>
 
-            {/* Target Job Description */}
-            <div className="flex flex-col h-full">
-                <label htmlFor="jobDescription" className="text-lg font-semibold text-text-primary mb-2">
+            <details open={!isGenerated} className="group">
+                <summary className="text-lg font-semibold text-text-primary list-none group-open:mb-2 cursor-pointer">
                     Target Job Description
-                </label>
-                <div className="flex-grow min-h-[200px]">
+                </summary>
+                 <div className="flex-grow min-h-[200px]">
                     <textarea
                         id="jobDescription"
                         value={jobDescription}
@@ -207,7 +126,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                         disabled={isLoading}
                     />
                 </div>
-            </div>
+            </details>
 
             {/* Professional Profile */}
             <div>
@@ -261,7 +180,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                     className="flex items-center justify-center gap-3 bg-primary hover:bg-primary/80 disabled:bg-slate disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-full transition-all duration-300 ease-in-out shadow-lg transform hover:scale-105 w-full"
                 >
                     <SparklesIcon />
-                    {isLoading ? 'Translating Experience...' : 'Generate Narrative'}
+                    {isLoading ? 'Translating Experience...' : (isGenerated ? 'Regenerate Narrative' : 'Generate Narrative')}
                 </button>
                 {error && <p className="text-red-400 mt-4 text-center">{error}</p>}
             </div>
