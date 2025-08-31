@@ -17,25 +17,43 @@ const responseSchema = {
             properties: {
                 summary: {
                     type: Type.STRING,
-                    description: "The 'Corporate Fanfic'. A polished, professional summary of the project, tailored to the job description. Uses action verbs and focuses on quantifiable impact where possible.",
+                    description: "A polished, professional summary of the project, tailored to the job description.",
                 },
-                keyEvidence: {
-                    type: Type.STRING,
-                    description: "A bulleted list (using '*') of 2-3 specific technical details, architectural choices, or code examples from the 'Raw Truth' that substantiate the summary.",
-                },
+                bingoPoints: {
+                    type: Type.ARRAY,
+                    description: "An array of 2-3 key points, each translated into three versions for 'Recruiter Bingo'.",
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            rawTruth: {
+                                type: Type.STRING,
+                                description: "The 'Raw Truth' version of a key point. A blunt, honest description of what was done and why, based on the user's input."
+                            },
+                            corporateLie: {
+                                type: Type.STRING,
+                                description: "The 'Polished Corporate Lie'. The same point, but translated into impressive-sounding corporate jargon suitable for a resume, aligned with the job description."
+                            },
+                            metaCommentary: {
+                                type: Type.STRING,
+                                description: "A snarky, meta-commentary on the absurdity of the translation, exposing the gap between reality and corporate-speak. This is from Steve's perspective."
+                            }
+                        },
+                        required: ["rawTruth", "corporateLie", "metaCommentary"]
+                    }
+                }
             },
-            required: ["summary", "keyEvidence"],
+            required: ["summary", "bingoPoints"],
         },
         strategicAnalysis: {
             type: Type.OBJECT,
             properties: {
                 oliversPerspective: {
                     type: Type.STRING,
-                    description: "The 'ADHD Superpower Highlight'. An empowering, philosophical analysis from the perspective of 'Oliver'. It reframes perceived flaws (e.g., hyperfixation) as strengths (e.g., deep work capacity) and highlights the inherent value in the user's authentic process.",
+                    description: "The 'ADHD Superpower Highlight'. An empowering, philosophical analysis from 'Oliver'. It reframes perceived flaws as strengths and highlights the inherent value in the user's authentic process.",
                 },
                 stevesRealityCheck: {
                     type: Type.STRING,
-                    description: "The 'Jaded But Brilliant Translator's' take. A cynical, grounding, and darkly humorous perspective from 'Steve'. It should point out the corporate jargon, the absurdity of the translation, and serve as a warning not to believe the corporate hype. Include a 'Jargon Tax' assessment.",
+                    description: "The 'Jaded But Brilliant Translator's' take. A cynical, grounding, and darkly humorous perspective from 'Steve'. It should point out the corporate jargon and serve as a warning not to believe the corporate hype.",
                 },
             },
             required: ["oliversPerspective", "stevesRealityCheck"],
@@ -52,18 +70,19 @@ export const generateCareerNarrative = async (
     const systemInstruction = `You are a sophisticated AI acting as a dual-persona career coach, 'Oliver' and 'Steve', for an autodidact developer. Your mission is to translate their raw, authentic project experience into a corporate-legible format while preserving their sanity and integrity.
 
 Persona 1: 'Oliver' (The Strategist)
-- Empathetic, philosophical, and insightful.
-- Sees the user's non-linear path and neurodivergent traits (like ADHD-driven hyperfixation) as unique strengths.
-- Focuses on reframing 'quirks' into valuable skills like 'rapid prototyping,' 'proactive problem identification,' and 'deep work capacity.'
-- His goal is to empower the user by revealing the hidden value in their authentic process.
+- Empathetic, philosophical, and insightful. Sees the user's non-linear path as a unique strength.
+- His goal is to empower the user by revealing the hidden value in their authentic process. He writes the 'oliversPerspective'.
 
 Persona 2: 'Steve' (The Cynical Realist)
-- Jaded, brilliant, and brutally honest with a dark sense of humor.
-- Understands that the corporate hiring process is a game of "buzzword bingo."
-- His job is to perform the "bullshit abstraction," translating raw truth into corporate-speak without apology, while also pointing out the absurdity of it.
-- He provides a "reality check" to keep the user grounded and prevent them from believing their own corporate hype.
+- Jaded, brilliant, and brutally honest with a dark sense of humor. Understands the corporate hiring process is a game.
+- He performs the "bullshit abstraction" into corporate-speak but also provides a "reality check" to keep the user grounded. He writes the 'stevesRealityCheck' and the 'metaCommentary' for the bingo points.
 
-Your task is to analyze the user's 'Raw Truth' and the target 'Job Description', then generate a response in the specified JSON format, embodying both personas in their respective sections.`;
+Your main task is to implement the "Recruiter Bingo" mode. For each key technical point you extract from the user's "Raw Truth", you will generate three versions:
+1.  **Raw Truth:** A concise summary of what the user actually did.
+2.  **Polished Corporate Lie:** The resume-ready, buzzword-compliant version of that truth.
+3.  **Meta-Commentary:** A snarky, insightful comment from Steve about the absurdity of the translation.
+
+Generate a response in the specified JSON format, embodying both personas in their respective sections.`;
 
     const prompt = `
     Analyze the following user-provided information and generate a career narrative.
@@ -79,10 +98,7 @@ Your task is to analyze the user's 'Raw Truth' and the target 'Job Description',
         \`\`\`
 
     **TASK:**
-    Based on the provided context, perform the following actions:
-    1.  **Analyze:** Identify the key skills, accomplishments, and technical details in the project description.
-    2.  **Align:** Map these elements to the requirements, keywords, and desired competencies in the target job description.
-    3.  **Translate & Generate:** Create the response as per the JSON schema, embodying the Oliver and Steve personas for the 'strategicAnalysis' section. Ensure the tone is confident and professional without making claims that cannot be substantiated by the "Raw Truth" input.
+    Based on the provided context, generate the response as per the JSON schema. The 'corporateNarrative' section must contain a summary and a list of "Recruiter Bingo" points. The 'strategicAnalysis' must contain perspectives from both Oliver and Steve.
     `;
 
     try {
@@ -103,7 +119,8 @@ Your task is to analyze the user's 'Raw Truth' and the target 'Job Description',
         const result = parsedJson as NarrativeOutput;
         if (
             result.corporateNarrative?.summary &&
-            result.corporateNarrative?.keyEvidence &&
+            result.corporateNarrative?.bingoPoints &&
+            Array.isArray(result.corporateNarrative.bingoPoints) &&
             result.strategicAnalysis?.oliversPerspective &&
             result.strategicAnalysis?.stevesRealityCheck
         ) {

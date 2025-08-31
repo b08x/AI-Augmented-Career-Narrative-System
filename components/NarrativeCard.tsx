@@ -3,22 +3,12 @@ import { VolumeUpIcon } from './icons/VolumeUpIcon';
 
 interface NarrativeCardProps {
     title: string;
-    content: string;
+    children: React.ReactNode;
+    speakableText: string;
     isPrimary?: boolean;
 }
 
-// Simple markdown parser for bold text
-const renderWithBold = (text: string) => {
-    return text.split(/(\*\*.*?\*\*)/g).map((part, index) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-            return <strong key={index}>{part.slice(2, -2)}</strong>;
-        }
-        return part;
-    });
-};
-
-
-export const NarrativeCard: React.FC<NarrativeCardProps> = ({ title, content, isPrimary = false }) => {
+export const NarrativeCard: React.FC<NarrativeCardProps> = ({ title, children, speakableText, isPrimary = false }) => {
     const [isSpeaking, setIsSpeaking] = useState(false);
 
     const handleSpeak = useCallback(() => {
@@ -33,14 +23,12 @@ export const NarrativeCard: React.FC<NarrativeCardProps> = ({ title, content, is
             return;
         }
         
-        // Strip markdown for speech synthesis
-        const plainText = content.replace(/\*\*/g, '');
-        const utterance = new SpeechSynthesisUtterance(plainText);
+        const utterance = new SpeechSynthesisUtterance(speakableText);
         utterance.onstart = () => setIsSpeaking(true);
         utterance.onend = () => setIsSpeaking(false);
         utterance.onerror = () => setIsSpeaking(false);
         window.speechSynthesis.speak(utterance);
-    }, [content, isSpeaking]);
+    }, [speakableText, isSpeaking]);
 
     const cardClasses = isPrimary 
         ? "bg-brand-dark/50 border-2 border-brand-secondary shadow-2xl transform lg:scale-105" 
@@ -58,10 +46,8 @@ export const NarrativeCard: React.FC<NarrativeCardProps> = ({ title, content, is
                     <VolumeUpIcon />
                 </button>
             </div>
-            <div className="prose prose-invert prose-p:text-brand-light/90 prose-p:my-2 overflow-y-auto max-h-96 flex-grow">
-                {content.split('\n').map((paragraph, index) => (
-                    <p key={index}>{paragraph ? renderWithBold(paragraph) : '\u00A0'}</p> 
-                ))}
+            <div className="prose prose-invert prose-p:text-brand-light/90 prose-p:my-2 overflow-y-auto max-h-[400px] flex-grow">
+                {children}
             </div>
         </div>
     );
