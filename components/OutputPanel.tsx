@@ -1,6 +1,6 @@
 
 import React from 'react';
-import type { NarrativeOutput } from '../types';
+import type { NarrativeOutput, KeyExperience } from '../types';
 import { Loader } from './Loader';
 import { NarrativeCard } from './NarrativeCard';
 
@@ -8,6 +8,7 @@ interface OutputPanelProps {
     isLoading: boolean;
     narrativeOutput: NarrativeOutput | null;
     rawTruth: string;
+    onKeyExperienceReorder: (reorderedBreakdown: KeyExperience[]) => void;
 }
 
 // Simple markdown parser for bold text
@@ -21,7 +22,10 @@ const renderWithBold = (text: string) => {
 };
 
 
-export const OutputPanel: React.FC<OutputPanelProps> = ({ isLoading, narrativeOutput, rawTruth }) => {
+export const OutputPanel: React.FC<OutputPanelProps> = ({ isLoading, narrativeOutput, rawTruth, onKeyExperienceReorder }) => {
+    const [draggedOverIndex, setDraggedOverIndex] = React.useState<number | null>(null);
+    const draggedItemIndex = React.useRef<number | null>(null);
+
     if (isLoading) {
         return <Loader />;
     }
@@ -40,6 +44,39 @@ export const OutputPanel: React.FC<OutputPanelProps> = ({ isLoading, narrativeOu
             `Literal Description: ${p.rawTruth}. Corporate Framing: ${p.corporateFraming}. Meta-Commentary: ${p.metaCommentary}.`
         ).join('\n');
 
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+        draggedItemIndex.current = index;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', index.toString());
+    };
+
+    const handleDragEnter = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+        e.preventDefault();
+        if (draggedItemIndex.current !== index) {
+            setDraggedOverIndex(index);
+        }
+    };
+
+    const handleDragEnd = () => {
+        draggedItemIndex.current = null;
+        setDraggedOverIndex(null);
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        if (draggedItemIndex.current === null || draggedOverIndex === null || draggedItemIndex.current === draggedOverIndex) {
+            handleDragEnd();
+            return;
+        }
+
+        const items = [...narrativeOutput.corporateNarrative.keyExperienceBreakdown];
+        const [reorderedItem] = items.splice(draggedItemIndex.current, 1);
+        items.splice(draggedOverIndex, 0, reorderedItem);
+
+        onKeyExperienceReorder(items);
+        handleDragEnd();
+    };
+
     return (
         <div className="space-y-6 animate-fade-in h-full">
             <NarrativeCard title="Literal Description (Your Input)" speakableText={rawTruth}>
@@ -57,10 +94,24 @@ export const OutputPanel: React.FC<OutputPanelProps> = ({ isLoading, narrativeOu
                 <h4 className="text-lg font-semibold mt-6 mb-4 text-text-primary/90">Key Experience Breakdown:</h4>
                 <div className="space-y-4">
                     {narrativeOutput.corporateNarrative.keyExperienceBreakdown.map((point, index) => (
-                        <div key={index} className="border-l-4 border-mint pl-4 py-2 bg-background/40 rounded-r-lg text-sm">
-                            <p><strong className="text-text-secondary font-medium">Literal Description:</strong> {point.rawTruth}</p>
-                            <p className="mt-1"><strong className="text-text-primary font-medium">Corporate Framing:</strong> <span className="text-text-primary/90">{point.corporateFraming}</span></p>
-                            <p className="mt-1"><strong className="text-slate font-medium">Meta-Commentary:</strong> <em className="text-slate/90">{point.metaCommentary}</em></p>
+                        <div 
+                            key={point.rawTruth + index}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, index)}
+                            onDragEnter={(e) => handleDragEnter(e, index)}
+                            onDragEnd={handleDragEnd}
+                            onDrop={handleDrop}
+                            onDragOver={(e) => e.preventDefault()}
+                            className={`relative transition-all duration-200 ease-in-out cursor-grab active:cursor-grabbing ${draggedItemIndex.current === index ? 'opacity-30' : ''}`}
+                            >
+                            {draggedOverIndex === index && draggedItemIndex.current !== index && (
+                                <div className="absolute -top-1 left-0 w-full h-1 bg-primary rounded-full z-10" />
+                            )}
+                            <div className="border-l-4 border-mint pl-4 py-2 bg-background/40 rounded-r-lg text-sm">
+                                <p><strong className="text-text-secondary font-medium">Literal Description:</strong> {point.rawTruth}</p>
+                                <p className="mt-1"><strong className="text-text-primary font-medium">Corporate Framing:</strong> <span className="text-text-primary/90">{point.corporateFraming}</span></p>
+                                <p className="mt-1"><strong className="text-slate font-medium">Meta-Commentary:</strong> <em className="text-slate/90">{point.metaCommentary}</em></p>
+                            </div>
                         </div>
                     ))}
                 </div>

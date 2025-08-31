@@ -4,7 +4,7 @@ import { Header } from './components/Header';
 import { InputPanel } from './components/InputPanel';
 import { OutputPanel } from './components/OutputPanel';
 import { generateCareerNarrative, generateResumeFeedback } from './services/geminiService';
-import { NarrativeOutput, ChatMessage } from './types';
+import { NarrativeOutput, ChatMessage, KeyExperience } from './types';
 import { StrategicAnalysisPanel } from './components/StrategicAnalysisPanel';
 import { ResumeFeedbackPanel } from './components/ResumeFeedbackPanel';
 
@@ -86,6 +86,19 @@ const App: React.FC = () => {
         }
     }, [narrativeOutput, resumeText, resumeFeedback]);
 
+    const handleKeyExperienceReorder = useCallback((reorderedBreakdown: KeyExperience[]) => {
+        setNarrativeOutput(prev => {
+            if (!prev) return null;
+            return {
+                ...prev,
+                corporateNarrative: {
+                    ...prev.corporateNarrative,
+                    keyExperienceBreakdown: reorderedBreakdown,
+                },
+            };
+        });
+    }, []);
+
     return (
         <div className="min-h-screen bg-background text-text-primary font-sans flex flex-col">
             <Header />
@@ -111,6 +124,7 @@ const App: React.FC = () => {
                         isLoading={isLoading} 
                         narrativeOutput={narrativeOutput} 
                         rawTruth={rawTruth}
+                        onKeyExperienceReorder={handleKeyExperienceReorder}
                     />
                 </div>
                 <div className="lg:col-span-1 flex flex-col gap-6">
