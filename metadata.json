@@ -1,0 +1,7 @@
+{
+  "name": "AI Career Narrative Augmentor",
+  "description": "An AI-powered tool to translate unstructured, project-based learning experiences into corporate-legible career narratives, based on the principles of an AI-Augmented Career Narrative System.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
