@@ -1,25 +1,40 @@
 
 import React, { useState, useCallback } from 'react';
 import { Header } from './components/Header';
-import { InputPanel } from './components/InputPanel';
-import { OutputPanel } from './components/OutputPanel';
 import { generateCareerNarrative, generateResumeFeedback } from './services/geminiService';
 import { NarrativeOutput, ChatMessage, KeyExperience } from './types';
-import { StrategicAnalysisPanel } from './components/StrategicAnalysisPanel';
-import { ResumeFeedbackPanel } from './components/ResumeFeedbackPanel';
+import { InputPage } from './pages/InputPage';
+import { WorkbenchPage } from './pages/WorkbenchPage';
 
 const App: React.FC = () => {
+    // App view state
+    const [view, setView] = useState<'input' | 'workbench'>('input');
+
+    // Input state
     const [rawTruth, setRawTruth] = useState<string>('');
     const [jobDescription, setJobDescription] = useState<string>('');
     const [resumeFile, setResumeFile] = useState<File | null>(null);
     const [resumeText, setResumeText] = useState<string>('');
     const [gitRepoUrl, setGitRepoUrl] = useState<string>('');
+    
+    // Output state
     const [narrativeOutput, setNarrativeOutput] = useState<NarrativeOutput | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    
+
+    // Resume Feedback Chat state
     const [resumeFeedback, setResumeFeedback] = useState<ChatMessage[]>([]);
     const [isFeedbackLoading, setIsFeedbackLoading] = useState<boolean>(false);
+
+    // Persona Chat state
+    const [oliverChat, setOliverChat] = useState<ChatMessage[]>([]);
+    const [steveChat, setSteveChat] = useState<ChatMessage[]>([]);
+    const [isPersonaLoading, setIsPersonaLoading] = useState(false);
+    const [automatedAnalysis, setAutomatedAnalysis] = useState(true);
+
+    // Resume Editor state
+    const [editedResume, setEditedResume] = useState('');
+    const [resumeHistory, setResumeHistory] = useState<string[]>([]);
 
     const handleGenerate = useCallback(async () => {
         if (!rawTruth.trim()) {
@@ -34,11 +49,20 @@ const App: React.FC = () => {
         setIsLoading(true);
         setError(null);
         setNarrativeOutput(null);
-        setResumeFeedback([]); // Clear feedback on new narrative generation
+        setResumeFeedback([]);
+        setOliverChat([]);
+        setSteveChat([]);
 
         try {
             const result = await generateCareerNarrative(rawTruth, jobDescription, resumeText, gitRepoUrl);
             setNarrativeOutput(result);
+            setEditedResume(resumeText);
+            setResumeHistory([resumeText]);
+            if (result.strategicAnalysis) {
+                setOliverChat([{ role: 'model', text: result.strategicAnalysis.oliversPerspective }]);
+                setSteveChat([{ role: 'model', text: result.strategicAnalysis.stevesPerspective }]);
+            }
+            setView('workbench');
         } catch (e: unknown) {
             const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
             setError(`Failed to generate narrative: ${errorMessage}`);
@@ -58,10 +82,11 @@ const App: React.FC = () => {
         try {
             const { feedback, strategicAnalysis } = await generateResumeFeedback(narrativeOutput, resumeText, []);
             setResumeFeedback([{ role: 'model', text: feedback }]);
-            setNarrativeOutput(prev => ({
-                ...prev!,
-                strategicAnalysis: strategicAnalysis,
-            }));
+            setNarrativeOutput(prev => ({ ...prev!, strategicAnalysis }));
+            if (automatedAnalysis) {
+                setOliverChat(prev => [...prev, { role: 'model', text: strategicAnalysis.oliversPerspective }]);
+                setSteveChat(prev => [...prev, { role: 'model', text: strategicAnalysis.stevesPerspective }]);
+            }
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
             setResumeFeedback([{ role: 'model', text: `Sorry, an error occurred: ${errorMessage}` }]);
@@ -69,7 +94,7 @@ const App: React.FC = () => {
         } finally {
             setIsFeedbackLoading(false);
         }
-    }, [narrativeOutput, resumeText]);
+    }, [narrativeOutput, resumeText, automatedAnalysis]);
     
     const handleSendFeedbackMessage = useCallback(async (message: string) => {
         if (!narrativeOutput || !resumeText || !message.trim()) return;
@@ -79,12 +104,13 @@ const App: React.FC = () => {
         setIsFeedbackLoading(true);
 
         try {
-            const { feedback, strategicAnalysis } = await generateResumeFeedback(narrativeOutput, resumeText, newHistory);
+            const { feedback, strategicAnalysis } = await generateResumeFeedback(narrativeOutput, editedResume, newHistory);
             setResumeFeedback([...newHistory, { role: 'model', text: feedback }]);
-            setNarrativeOutput(prev => ({
-                ...prev!,
-                strategicAnalysis: strategicAnalysis,
-            }));
+            setNarrativeOutput(prev => ({ ...prev!, strategicAnalysis }));
+            if (automatedAnalysis) {
+                setOliverChat(prev => [...prev, { role: 'model', text: strategicAnalysis.oliversPerspective }]);
+                setSteveChat(prev => [...prev, { role: 'model', text: strategicAnalysis.stevesPerspective }]);
+            }
         } catch (e) {
              const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
             setResumeFeedback([...newHistory, { role: 'model', text: `Sorry, an error occurred: ${errorMessage}` }]);
@@ -92,7 +118,7 @@ const App: React.FC = () => {
         } finally {
             setIsFeedbackLoading(false);
         }
-    }, [narrativeOutput, resumeText, resumeFeedback]);
+    }, [narrativeOutput, resumeText, editedResume, resumeFeedback, automatedAnalysis]);
 
     const handleKeyExperienceReorder = useCallback((reorderedBreakdown: KeyExperience[]) => {
         setNarrativeOutput(prev => {
@@ -107,50 +133,78 @@ const App: React.FC = () => {
         });
     }, []);
 
+    const handleResumeEdit = (newText: string) => {
+        setEditedResume(newText);
+        setResumeHistory(prev => [...prev, newText]);
+    }
+
+    const handleResumeUndo = () => {
+        if (resumeHistory.length > 1) {
+            const newHistory = [...resumeHistory];
+            newHistory.pop();
+            setResumeHistory(newHistory);
+            setEditedResume(newHistory[newHistory.length - 1]);
+        }
+    }
+
     return (
         <div className="min-h-screen bg-background text-text-primary font-sans flex flex-col">
             <Header />
-            <main className="flex-grow max-w-screen-2xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 w-full">
-                <div className="lg:col-span-1">
-                    <InputPanel
-                        rawTruth={rawTruth}
-                        setRawTruth={setRawTruth}
-                        jobDescription={jobDescription}
-                        setJobDescription={setJobDescription}
-                        gitRepoUrl={gitRepoUrl}
-                        setGitRepoUrl={setGitRepoUrl}
-                        resumeFile={resumeFile}
-                        setResumeFile={setResumeFile}
-                        setResumeText={setResumeText}
-                        isLoading={isLoading}
-                        error={error}
-                        handleGenerate={handleGenerate}
-                    />
-                </div>
-                <div className="lg:col-span-1">
-                    <OutputPanel 
-                        isLoading={isLoading} 
-                        narrativeOutput={narrativeOutput} 
-                        rawTruth={rawTruth}
-                        onKeyExperienceReorder={handleKeyExperienceReorder}
-                    />
-                </div>
-                <div className="lg:col-span-1 flex flex-col gap-6">
-                    {narrativeOutput && !isLoading && (
-                        <>
-                            <StrategicAnalysisPanel analysis={narrativeOutput.strategicAnalysis} />
-                            <ResumeFeedbackPanel 
-                                narrativeOutput={narrativeOutput}
-                                resumeText={resumeText}
-                                feedback={resumeFeedback}
-                                isLoading={isFeedbackLoading}
-                                onInitialAnalysis={handleInitialResumeAnalysis}
-                                onSendMessage={handleSendFeedbackMessage}
-                            />
-                        </>
-                    )}
-                </div>
-            </main>
+            
+            {view === 'input' ? (
+                <InputPage
+                    rawTruth={rawTruth}
+                    setRawTruth={setRawTruth}
+                    jobDescription={jobDescription}
+                    setJobDescription={setJobDescription}
+                    gitRepoUrl={gitRepoUrl}
+                    setGitRepoUrl={setGitRepoUrl}
+                    resumeFile={resumeFile}
+                    setResumeFile={setResumeFile}
+                    setResumeText={setResumeText}
+                    isLoading={isLoading}
+                    error={error}
+                    handleGenerate={handleGenerate}
+                />
+            ) : (
+                <WorkbenchPage
+                    // Input Panel Props
+                    rawTruth={rawTruth}
+                    setRawTruth={setRawTruth}
+                    jobDescription={jobDescription}
+                    setJobDescription={setJobDescription}
+                    gitRepoUrl={gitRepoUrl}
+                    setGitRepoUrl={setGitRepoUrl}
+                    resumeFile={resumeFile}
+                    setResumeFile={setResumeFile}
+                    setResumeText={setResumeText}
+                    isLoading={isLoading}
+                    handleGenerate={handleGenerate}
+                    // Output Panel Props
+                    narrativeOutput={narrativeOutput}
+                    onKeyExperienceReorder={handleKeyExperienceReorder}
+                    // Resume Feedback Props
+                    resumeText={resumeText}
+                    feedback={resumeFeedback}
+                    isFeedbackLoading={isFeedbackLoading}
+                    onInitialAnalysis={handleInitialResumeAnalysis}
+                    onSendMessage={handleSendFeedbackMessage}
+                    // Resume Editor Props
+                    editedResume={editedResume}
+                    onResumeEdit={handleResumeEdit}
+                    onUndo={handleResumeUndo}
+                    canUndo={resumeHistory.length > 1}
+                    // Persona Chat Props
+                    oliverChat={oliverChat}
+                    steveChat={steveChat}
+                    setOliverChat={setOliverChat}
+                    setSteveChat={setSteveChat}
+                    isPersonaLoading={isPersonaLoading}
+                    automatedAnalysis={automatedAnalysis}
+                    setAutomatedAnalysis={setAutomatedAnalysis}
+                />
+            )}
+
             <footer className="text-center p-4 text-slate text-sm">
                 <p>Built with React, Tailwind, and the Gemini API.</p>
             </footer>
