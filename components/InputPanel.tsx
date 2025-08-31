@@ -50,6 +50,8 @@ export const InputPanel: React.FC<InputPanelProps> = ({
     handleGenerate
 }) => {
     const [isRecording, setIsRecording] = useState(false);
+    const [isFetchingCommits, setIsFetchingCommits] = useState(false);
+    const [commitError, setCommitError] = useState<string | null>(null);
 
     const handleContentFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -76,6 +78,48 @@ export const InputPanel: React.FC<InputPanelProps> = ({
             reader.readAsText(file);
         }
     };
+
+    const handleFetchCommits = useCallback(async () => {
+        setCommitError(null);
+        if (!gitRepoUrl) {
+            setCommitError("Please enter a GitHub repository URL.");
+            return;
+        }
+
+        const match = gitRepoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
+        if (!match) {
+            setCommitError("Invalid GitHub URL. Please use the format 'https://github.com/owner/repo'.");
+            return;
+        }
+
+        setIsFetchingCommits(true);
+        const [, owner, repo] = match;
+        const repoName = repo.replace(/\.git$/, '');
+
+        try {
+            const response = await fetch(`https://api.github.com/repos/${owner}/${repoName}/commits?per_page=20`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Failed to fetch commits (${response.status})`);
+            }
+            const commits = await response.json();
+            
+            if (commits.length === 0) {
+                setRawTruth(prev => `${prev.trim()}\n\n--- GIT COMMIT HISTORY ---\nNo recent commits found in the repository.`);
+            } else {
+                const commitSummary = commits
+                    .map((c: any) => `- ${c.commit.message.split('\n')[0]}`) // Take only first line
+                    .join('\n');
+                const summaryText = `\n\n--- RECENT GIT COMMIT HISTORY (last ${commits.length} commits) ---\n${commitSummary}`;
+                setRawTruth(prev => prev.trim() + summaryText);
+            }
+        } catch (e: any) {
+            setCommitError(`Error: ${e.message}. This may be a private repository, an invalid URL, or a rate-limited API.`);
+            console.error(e);
+        } finally {
+            setIsFetchingCommits(false);
+        }
+    }, [gitRepoUrl, setRawTruth]);
 
 
     const toggleRecording = useCallback(() => {
@@ -125,7 +169,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                     Literal Description
                 </label>
                 <p className="text-sm text-gray-light mb-4">
-                    Explain what you built, why you built it, and the challenges you faced.
+                    Explain what you built, why you built it, and the challenges you faced. You can also fetch commit history from a public GitHub repo below.
                 </p>
                 <div className="relative flex-grow min-h-[200px]">
                     <textarea
@@ -184,15 +228,29 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                  <label htmlFor="gitRepoUrl" className="text-lg font-semibold text-brand-light mb-2">
                     Project Context (Optional)
                 </label>
-                <input
-                    id="gitRepoUrl"
-                    type="text"
-                    value={gitRepoUrl}
-                    onChange={(e) => setGitRepoUrl(e.target.value)}
-                    placeholder="Public Git Repository URL"
-                    className="w-full mt-2 p-3 bg-gray-dark/50 border-2 border-brand-dark rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
-                    disabled={isLoading}
-                />
+                <div className="flex items-stretch gap-2 mt-2">
+                    <input
+                        id="gitRepoUrl"
+                        type="text"
+                        value={gitRepoUrl}
+                        onChange={(e) => setGitRepoUrl(e.target.value)}
+                        placeholder="Public GitHub URL (e.g., https://github.com/owner/repo)"
+                        className="flex-grow w-full p-3 bg-gray-dark/50 border-2 border-brand-dark rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
+                        disabled={isLoading || isFetchingCommits}
+                    />
+                    <button
+                        onClick={handleFetchCommits}
+                        disabled={isLoading || isFetchingCommits || !gitRepoUrl}
+                        className="flex-shrink-0 bg-brand-dark hover:bg-brand-primary disabled:bg-gray-medium disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-md transition-colors text-sm flex items-center justify-center min-w-[120px]"
+                    >
+                        {isFetchingCommits ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            'Fetch Commits'
+                        )}
+                    </button>
+                </div>
+                {commitError && <p className="text-red-400 mt-2 text-sm">{commitError}</p>}
             </div>
             
             {/* Generate Button */}
