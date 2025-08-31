@@ -56,8 +56,12 @@ const App: React.FC = () => {
         setIsFeedbackLoading(true);
         setResumeFeedback([]);
         try {
-            const responseText = await generateResumeFeedback(narrativeOutput, resumeText, []);
-            setResumeFeedback([{ role: 'model', text: responseText }]);
+            const { feedback, strategicAnalysis } = await generateResumeFeedback(narrativeOutput, resumeText, []);
+            setResumeFeedback([{ role: 'model', text: feedback }]);
+            setNarrativeOutput(prev => ({
+                ...prev!,
+                strategicAnalysis: strategicAnalysis,
+            }));
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
             setResumeFeedback([{ role: 'model', text: `Sorry, an error occurred: ${errorMessage}` }]);
@@ -75,8 +79,12 @@ const App: React.FC = () => {
         setIsFeedbackLoading(true);
 
         try {
-            const responseText = await generateResumeFeedback(narrativeOutput, resumeText, newHistory);
-            setResumeFeedback([...newHistory, { role: 'model', text: responseText }]);
+            const { feedback, strategicAnalysis } = await generateResumeFeedback(narrativeOutput, resumeText, newHistory);
+            setResumeFeedback([...newHistory, { role: 'model', text: feedback }]);
+            setNarrativeOutput(prev => ({
+                ...prev!,
+                strategicAnalysis: strategicAnalysis,
+            }));
         } catch (e) {
              const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
             setResumeFeedback([...newHistory, { role: 'model', text: `Sorry, an error occurred: ${errorMessage}` }]);

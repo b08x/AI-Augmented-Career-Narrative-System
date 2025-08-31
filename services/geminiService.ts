@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import type { NarrativeOutput, ChatMessage } from '../types';
+import type { NarrativeOutput, ChatMessage, StrategicAnalysis } from '../types';
 import { narrativeSystemPrompt } from '../prompts/narrativeSystemPrompt';
 import { resumeFeedbackSystemPrompt } from '../prompts/resumeFeedbackSystemPrompt';
 
@@ -12,7 +12,7 @@ if (!API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
-const responseSchema = {
+const narrativeResponseSchema = {
     type: Type.OBJECT,
     properties: {
         corporateNarrative: {
@@ -65,6 +65,31 @@ const responseSchema = {
     required: ["corporateNarrative", "strategicAnalysis"],
 };
 
+const feedbackResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        feedback: {
+            type: Type.STRING,
+            description: "The AI's response to the user's resume or query, providing feedback and suggestions.",
+        },
+        strategicAnalysis: {
+            type: Type.OBJECT,
+            properties: {
+                oliversPerspective: {
+                    type: Type.STRING,
+                    description: "Oliver's empowering, philosophical analysis of the resume feedback itself. How does this feedback help the user grow?",
+                },
+                stevesPerspective: {
+                    type: Type.STRING,
+                    description: "Steve's cynical, grounding, and darkly humorous take on the resume feedback. What corporate game is being played with this advice?",
+                },
+            },
+            required: ["oliversPerspective", "stevesPerspective"],
+        },
+    },
+    required: ["feedback", "strategicAnalysis"],
+};
+
 
 export const generateCareerNarrative = async (
     rawTruth: string,
@@ -104,7 +129,7 @@ export const generateCareerNarrative = async (
             config: {
                 systemInstruction: narrativeSystemPrompt,
                 responseMimeType: "application/json",
-                responseSchema: responseSchema,
+                responseSchema: narrativeResponseSchema,
                 temperature: 0.75,
             },
         });
@@ -135,7 +160,7 @@ export const generateResumeFeedback = async (
     narrative: NarrativeOutput,
     resumeText: string,
     chatHistory: ChatMessage[]
-): Promise<string> => {
+): Promise<{ feedback: string; strategicAnalysis: StrategicAnalysis }> => {
     const narrativeContext = `
     **Generated Corporate Narrative for Analysis:**
     - **Summary:** ${narrative.corporateNarrative.summary}
@@ -149,20 +174,29 @@ export const generateResumeFeedback = async (
 
     const initialPrompt = `Based on the provided Corporate Narrative and the user's resume, perform an initial analysis. What are the most critical gaps? Provide 2-3 specific, actionable suggestions for improvement.`;
     
+    const taskPrompt = `
+    Now, generate a response in JSON format with two keys: "feedback" and "strategicAnalysis".
+    - "feedback": This should contain your direct advice and answer to the user's latest query.
+    - "strategicAnalysis": This should contain a new analysis from Oliver and Steve commenting on the feedback you just provided. Oliver's perspective should be empowering, while Steve's should be cynical and pragmatic.
+    `;
+    
     const contents: any[] = [
         { role: 'user', parts: [{ text: narrativeContext }] },
-        { role: 'model', parts: [{ text: "Understood. I will act as an expert resume critic. I have the context of the corporate narrative and the user's resume. Let's begin." }] },
+        { role: 'model', parts: [{ text: "Understood. I have the context. I will provide feedback and a new strategic analysis from Oliver and Steve in the required JSON format." }] },
     ];
 
     if (chatHistory.length === 0) {
-        contents.push({ role: 'user', parts: [{ text: initialPrompt }] });
+        contents.push({ role: 'user', parts: [{ text: initialPrompt + taskPrompt }] });
     } else {
-        chatHistory.forEach(message => {
-            contents.push({
-                role: message.role,
-                parts: [{ text: message.text }]
-            });
-        });
+        const historyForApi = chatHistory.map(message => ({
+            role: message.role,
+            parts: [{ text: message.text }]
+        }));
+
+        const lastMessage = historyForApi[historyForApi.length - 1];
+        lastMessage.parts[0].text += '\n\n' + taskPrompt;
+        
+        contents.push(...historyForApi);
     }
 
     try {
@@ -171,10 +205,24 @@ export const generateResumeFeedback = async (
             contents: contents,
             config: {
                 systemInstruction: resumeFeedbackSystemPrompt,
+                responseMimeType: "application/json",
+                responseSchema: feedbackResponseSchema,
                 temperature: 0.5,
             },
         });
-        return response.text;
+        const jsonText = response.text.trim();
+        const parsedJson = JSON.parse(jsonText);
+
+        if (
+            parsedJson.feedback &&
+            parsedJson.strategicAnalysis &&
+            parsedJson.strategicAnalysis.oliversPerspective &&
+            parsedJson.strategicAnalysis.stevesPerspective
+        ) {
+            return parsedJson as { feedback: string; strategicAnalysis: StrategicAnalysis };
+        } else {
+            throw new Error("Invalid JSON structure received for feedback from API.");
+        }
     } catch (error) {
         console.error("Error calling Gemini API for feedback:", error);
         throw new Error("The AI service failed to process the feedback request.");
