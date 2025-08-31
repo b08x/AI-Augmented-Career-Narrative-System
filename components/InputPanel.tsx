@@ -1,19 +1,10 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { UploadIcon } from './icons/UploadIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
+import { useNarrative } from '../contexts/NarrativeContext';
+import { useResume } from '../contexts/ResumeContext';
 
 interface InputPanelProps {
-    rawTruth: string;
-    setRawTruth: React.Dispatch<React.SetStateAction<string>>;
-    jobDescription: string;
-    setJobDescription: React.Dispatch<React.SetStateAction<string>>;
-    gitRepoUrl: string;
-    setGitRepoUrl: React.Dispatch<React.SetStateAction<string>>;
-    resumeFile: File | null;
-    setResumeFile: React.Dispatch<React.SetStateAction<File | null>>;
-    setResumeText: React.Dispatch<React.SetStateAction<string>>;
-    isLoading: boolean;
-    error: string | null;
     handleGenerate: () => void;
     isGenerated?: boolean;
 }
@@ -32,20 +23,22 @@ const useAutosizeTextArea = (
 
 
 export const InputPanel: React.FC<InputPanelProps> = ({
-    rawTruth,
-    setRawTruth,
-    jobDescription,
-    setJobDescription,
-    gitRepoUrl,
-    setGitRepoUrl,
-    resumeFile,
-    setResumeFile,
-    setResumeText,
-    isLoading,
-    error,
     handleGenerate,
     isGenerated = false
 }) => {
+    const {
+        rawTruth,
+        setRawTruth,
+        jobDescription,
+        setJobDescription,
+        gitRepoUrl,
+        setGitRepoUrl,
+        isLoading,
+        error
+    } = useNarrative();
+
+    const { resumeFile, setResumeFile, setResumeText } = useResume();
+    
     const [isFetchingCommits, setIsFetchingCommits] = useState(false);
     const [commitError, setCommitError] = useState<string | null>(null);
     

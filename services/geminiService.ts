@@ -1,16 +1,31 @@
-
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type } from "@google/genai";
 import type { NarrativeOutput, ChatMessage, StrategicAnalysis } from '../types';
 import { narrativeSystemPrompt } from '../prompts/narrativeSystemPrompt';
 import { resumeFeedbackSystemPrompt } from '../prompts/resumeFeedbackSystemPrompt';
 
-const API_KEY = process.env.API_KEY;
+// The GoogleGenAI client is no longer initialized on the client-side.
+// All API calls are now proxied through a local BFF endpoint (/api/generate)
+// to secure the API key.
 
-if (!API_KEY) {
-    throw new Error("API_KEY environment variable not set.");
-}
+/**
+ * A helper function to call our BFF endpoint.
+ * @param payload The data to send to the Gemini API (model, contents, config).
+ * @returns The JSON response from the BFF, which should contain a `text` property.
+ */
+const callBff = async (payload: { model: string, contents: any, config?: any }) => {
+    const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
 
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to parse error from BFF' }));
+        throw new Error(errorData.error || `API request failed with status ${response.status}`);
+    }
+
+    return response.json(); // This will resolve to an object like { text: '...' }
+};
 
 const narrativeResponseSchema = {
     type: Type.OBJECT,
@@ -126,7 +141,7 @@ export const generateCareerNarrative = async (
     `;
 
     try {
-        const response = await ai.models.generateContent({
+        const payload = {
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
@@ -135,9 +150,10 @@ export const generateCareerNarrative = async (
                 responseSchema: narrativeResponseSchema,
                 temperature: 0.75,
             },
-        });
-
-        const jsonText = response.text.trim();
+        };
+        
+        const data = await callBff(payload);
+        const jsonText = data.text.trim();
         const parsedJson = JSON.parse(jsonText);
 
         const result = parsedJson as NarrativeOutput;
@@ -154,7 +170,7 @@ export const generateCareerNarrative = async (
         }
 
     } catch (error) {
-        console.error("Error calling Gemini API:", error);
+        console.error("Error calling Gemini API via BFF:", error);
         throw new Error("The AI service failed to process the request. Please check the console for details.");
     }
 };
@@ -203,7 +219,7 @@ export const generateResumeFeedback = async (
     }
 
     try {
-        const response = await ai.models.generateContent({
+        const payload = {
             model: "gemini-2.5-flash",
             contents: contents,
             config: {
@@ -212,8 +228,10 @@ export const generateResumeFeedback = async (
                 responseSchema: feedbackResponseSchema,
                 temperature: 0.5,
             },
-        });
-        const jsonText = response.text.trim();
+        };
+        
+        const data = await callBff(payload);
+        const jsonText = data.text.trim();
         const parsedJson = JSON.parse(jsonText);
 
         if (
@@ -228,7 +246,7 @@ export const generateResumeFeedback = async (
             throw new Error("Invalid JSON structure received for feedback from API.");
         }
     } catch (error) {
-        console.error("Error calling Gemini API for feedback:", error);
+        console.error("Error calling Gemini API for feedback via BFF:", error);
         throw new Error("The AI service failed to process the feedback request.");
     }
 };
@@ -262,16 +280,18 @@ export const generateResumeDraft = async (
     `;
 
     try {
-        const response = await ai.models.generateContent({
+        const payload = {
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
                 temperature: 0.4,
             },
-        });
-        return response.text;
+        };
+
+        const data = await callBff(payload);
+        return data.text;
     } catch (error) {
-        console.error("Error calling Gemini API for draft generation:", error);
+        console.error("Error calling Gemini API for draft generation via BFF:", error);
         throw new Error("The AI service failed to generate a new resume draft.");
     }
 };

@@ -1,13 +1,7 @@
 import React from 'react';
-import type { NarrativeOutput, KeyExperience } from '../types';
 import { Loader } from './Loader';
 import { NarrativeCard } from './NarrativeCard';
-
-interface OutputPanelProps {
-    isLoading: boolean;
-    narrativeOutput: NarrativeOutput | null;
-    onKeyExperienceReorder: (reorderedBreakdown: KeyExperience[]) => void;
-}
+import { useNarrative } from '../contexts/NarrativeContext';
 
 // Simple markdown parser for bold text
 const renderWithBold = (text: string) => {
@@ -20,7 +14,8 @@ const renderWithBold = (text: string) => {
 };
 
 
-export const OutputPanel: React.FC<OutputPanelProps> = ({ isLoading, narrativeOutput, onKeyExperienceReorder }) => {
+export const OutputPanel: React.FC = () => {
+    const { isLoading, narrativeOutput, updateKeyExperiences } = useNarrative();
     const [draggedOverIndex, setDraggedOverIndex] = React.useState<number | null>(null);
     const draggedItemIndex = React.useRef<number | null>(null);
 
@@ -71,7 +66,7 @@ export const OutputPanel: React.FC<OutputPanelProps> = ({ isLoading, narrativeOu
         const [reorderedItem] = items.splice(draggedItemIndex.current, 1);
         items.splice(draggedOverIndex, 0, reorderedItem);
 
-        onKeyExperienceReorder(items);
+        updateKeyExperiences(items);
         handleDragEnd();
     };
 

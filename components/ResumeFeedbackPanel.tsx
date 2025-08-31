@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import type { ChatMessage } from '../types';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { BotIcon } from './icons/BotIcon';
 import { UserIcon } from './icons/UserIcon';
@@ -7,6 +6,7 @@ import { MicrophoneIcon } from './icons/MicrophoneIcon';
 import { StopIcon } from './icons/StopIcon';
 import { UploadIcon } from './icons/UploadIcon';
 import { SendIcon } from './icons/SendIcon';
+import { useResume } from '../contexts/ResumeContext';
 
 declare global {
     interface Window {
@@ -15,20 +15,6 @@ declare global {
     }
 }
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-interface ResumeFeedbackPanelProps {
-    resumeText: string;
-    feedback: ChatMessage[];
-    isLoading: boolean;
-    onInitialAnalysis: () => void;
-    onSendMessage: (message: string) => void;
-    selectedFeedbackIds: Set<string>;
-    onToggleFeedbackSelection: (id: string) => void;
-    feedbackContext: Record<string, string>;
-    onFeedbackContextChange: (id: string, context: string) => void;
-    isDrafting: boolean;
-    onUpdateDraft: () => void;
-}
 
 const renderMessageContent = (text: string) => {
     return text.split('\n').map((line, index) => {
@@ -58,19 +44,21 @@ const AutosizeTextarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElemen
 };
 
 
-export const ResumeFeedbackPanel: React.FC<ResumeFeedbackPanelProps> = ({
-    resumeText,
-    feedback,
-    isLoading,
-    onInitialAnalysis,
-    onSendMessage,
-    selectedFeedbackIds,
-    onToggleFeedbackSelection,
-    feedbackContext,
-    onFeedbackContextChange,
-    isDrafting,
-    onUpdateDraft
-}) => {
+export const ResumeFeedbackPanel: React.FC = () => {
+    const {
+        resumeText,
+        resumeFeedback: feedback,
+        isFeedbackLoading: isLoading,
+        handleInitialResumeAnalysis: onInitialAnalysis,
+        handleSendFeedbackMessage: onSendMessage,
+        selectedFeedbackIds,
+        handleToggleFeedbackSelection: onToggleFeedbackSelection,
+        feedbackContext,
+        handleFeedbackContextChange: onFeedbackContextChange,
+        isDrafting,
+        handleUpdateResumeDraft: onUpdateDraft
+    } = useResume();
+
     const panelEndRef = useRef<HTMLDivElement>(null);
     const [chatInput, setChatInput] = useState('');
     const [isRecording, setIsRecording] = useState(false);

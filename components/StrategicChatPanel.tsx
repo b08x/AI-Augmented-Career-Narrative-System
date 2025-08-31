@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import type { ChatMessage } from '../types';
 import { BotIcon } from './icons/BotIcon';
+import { useResume } from '../contexts/ResumeContext';
 
 interface ChatWindowProps {
     title: string;
@@ -63,18 +64,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ title, messages, isLoading, tit
     );
 };
 
+export const StrategicChatPanel: React.FC = () => {
+    const { 
+        oliverChat, 
+        steveChat, 
+        isFeedbackLoading: isLoading, 
+        automatedAnalysis, 
+        setAutomatedAnalysis 
+    } = useResume();
 
-interface StrategicChatPanelProps {
-    oliverChat: ChatMessage[];
-    steveChat: ChatMessage[];
-    onSendOliver: (message: string) => void;
-    onSendSteve: (message: string) => void;
-    isLoading: boolean;
-    automatedAnalysis: boolean;
-    onToggleAutomatedAnalysis: () => void;
-}
-
-export const StrategicChatPanel: React.FC<StrategicChatPanelProps> = ({ oliverChat, steveChat, isLoading, automatedAnalysis, onToggleAutomatedAnalysis }) => {
     return (
         <div className="bg-charcoal rounded-lg p-6 animate-fade-in h-full flex flex-col border border-slate/50">
             <div className="flex justify-between items-center mb-6">
@@ -85,7 +83,7 @@ export const StrategicChatPanel: React.FC<StrategicChatPanelProps> = ({ oliverCh
                         role="switch"
                         aria-checked={automatedAnalysis}
                         id="automated-analysis"
-                        onClick={onToggleAutomatedAnalysis}
+                        onClick={() => setAutomatedAnalysis(!automatedAnalysis)}
                         className={`${automatedAnalysis ? 'bg-primary' : 'bg-slate/50'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
                     >
                         <span className={`${automatedAnalysis ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}/>

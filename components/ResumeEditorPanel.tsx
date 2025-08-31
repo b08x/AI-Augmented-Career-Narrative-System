@@ -1,13 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { UndoIcon } from './icons/UndoIcon';
-
-interface ResumeEditorPanelProps {
-    editedResume: string;
-    previousResume: string;
-    onResumeEdit: (newText: string) => void;
-    onUndo: () => void;
-    canUndo: boolean;
-}
+import { useResume } from '../contexts/ResumeContext';
 
 const DiffView: React.FC<{ oldText: string; newText: string }> = ({ oldText, newText }) => {
     const diff = useMemo(() => {
@@ -84,9 +77,19 @@ const useAutosizeTextArea = (
 };
 
 
-export const ResumeEditorPanel: React.FC<ResumeEditorPanelProps> = ({ editedResume, previousResume, onResumeEdit, onUndo, canUndo }) => {
+export const ResumeEditorPanel: React.FC = () => {
+    const { 
+        editedResume, 
+        resumeHistory, 
+        handleResumeEdit: onResumeEdit, 
+        handleResumeUndo: onUndo 
+    } = useResume();
+
     const [viewMode, setViewMode] = useState<'edit' | 'diff'>('edit');
     const editorRef = useRef<HTMLTextAreaElement>(null);
+
+    const previousResume = resumeHistory.length > 1 ? resumeHistory[resumeHistory.length - 2] : resumeHistory[0] || '';
+    const canUndo = resumeHistory.length > 1;
     
     useAutosizeTextArea(editorRef.current, editedResume);
 
