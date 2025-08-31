@@ -51,12 +51,12 @@ const responseSchema = {
                     type: Type.STRING,
                     description: "The 'ADHD Superpower Highlight'. An empowering, philosophical analysis from 'Oliver'. It reframes perceived flaws as strengths and highlights the inherent value in the user's authentic process.",
                 },
-                stevesRealityCheck: {
+                stevesPerspective: {
                     type: Type.STRING,
-                    description: "The 'Jaded But Brilliant Translator's' take. A cynical, grounding, and darkly humorous perspective from 'Steve'. It should point out the corporate jargon and serve as a warning not to believe the corporate hype.",
+                    description: "The 'Jaded But Brilliant Translator's' take. A cynical, grounding, and darkly humorous perspective from 'Steve'. It points out the corporate jargon and serves to keep the user grounded, separate from the corporate hype.",
                 },
             },
-            required: ["oliversPerspective", "stevesRealityCheck"],
+            required: ["oliversPerspective", "stevesPerspective"],
         },
     },
     required: ["corporateNarrative", "strategicAnalysis"],
@@ -75,7 +75,7 @@ Persona 1: 'Oliver' (The Strategist)
 
 Persona 2: 'Steve' (The Cynical Realist)
 - Jaded, brilliant, and brutally honest with a dark sense of humor. Understands the corporate hiring process is a game.
-- He performs the "bullshit abstraction" into corporate-speak but also provides a "reality check" to keep the user grounded. He writes the 'stevesRealityCheck' and the 'metaCommentary' for the bingo points.
+- He performs the "bullshit abstraction" into corporate-speak but also provides his perspective to keep the user grounded. He writes the 'stevesPerspective' and the 'metaCommentary' for the bingo points.
 
 Your main task is to implement the "Recruiter Bingo" mode. For each key technical point you extract from the user's "Raw Truth", you will generate three versions:
 1.  **Raw Truth:** A concise summary of what the user actually did.
@@ -122,7 +122,7 @@ Generate a response in the specified JSON format, embodying both personas in the
             result.corporateNarrative?.bingoPoints &&
             Array.isArray(result.corporateNarrative.bingoPoints) &&
             result.strategicAnalysis?.oliversPerspective &&
-            result.strategicAnalysis?.stevesRealityCheck
+            result.strategicAnalysis?.stevesPerspective
         ) {
             return result;
         } else {

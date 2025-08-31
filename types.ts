@@ -11,7 +11,7 @@ export interface CorporateNarrative {
 
 export interface StrategicAnalysis {
   oliversPerspective: string;
-  stevesRealityCheck: string;
+  stevesPerspective: string;
 }
 
 export interface NarrativeOutput {

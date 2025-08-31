@@ -23,14 +23,14 @@ export const StrategicAnalysisPanel: React.FC<StrategicAnalysisPanelProps> = ({ 
                     </div>
                 </div>
 
-                {/* Steve's Reality Check */}
+                {/* Steve's Perspective */}
                 <div className="bg-gray-medium/50 border border-brand-dark/50 rounded-xl p-6 flex flex-col">
                     <div className="flex items-center gap-3 mb-4">
                         <FireIcon className="h-8 w-8 text-red-400" />
-                        <h3 className="text-xl font-bold text-red-400">Steve's Reality Check</h3>
+                        <h3 className="text-xl font-bold text-red-400">Steve's Perspective</h3>
                     </div>
                     <div className="prose prose-invert prose-p:text-brand-light/90 prose-p:my-2 overflow-y-auto max-h-96 flex-grow">
-                        {analysis.stevesRealityCheck.split('\n').map((p, i) => <p key={i}>{p || '\u00A0'}</p>)}
+                        {analysis.stevesPerspective.split('\n').map((p, i) => <p key={i}>{p || '\u00A0'}</p>)}
                     </div>
                 </div>
             </div>
