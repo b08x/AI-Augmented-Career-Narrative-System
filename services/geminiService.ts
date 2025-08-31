@@ -1,6 +1,8 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import type { NarrativeOutput, ChatMessage } from '../types';
+import { narrativeSystemPrompt } from '../prompts/narrativeSystemPrompt';
+import { resumeFeedbackSystemPrompt } from '../prompts/resumeFeedbackSystemPrompt';
 
 const API_KEY = process.env.API_KEY;
 
@@ -70,23 +72,6 @@ export const generateCareerNarrative = async (
     resumeText: string,
     gitRepoUrl: string
 ): Promise<NarrativeOutput> => {
-    const systemInstruction = `You are a sophisticated AI acting as a dual-persona career coach, 'Oliver' and 'Steve', for an autodidact developer. Your mission is to translate their raw, authentic project experience into a corporate-legible format while preserving their sanity and integrity.
-
-Persona 1: 'Oliver' (The Strategist)
-- Empathetic, philosophical, and insightful. Sees the user's non-linear path as a unique strength.
-- His goal is to empower the user by revealing the hidden value in their authentic process. He writes the 'oliversPerspective'.
-
-Persona 2: 'Steve' (The Cynical Realist)
-- Jaded, brilliant, and brutally honest with a dark sense of humor. Understands the corporate hiring process is a game.
-- He performs the "bullshit abstraction" into corporate-speak but also provides his perspective to keep the user grounded. He writes the 'stevesPerspective' and the 'metaCommentary' for the bingo points.
-
-Your main task is to implement the "Recruiter Bingo" mode. For each key technical point you extract from the user's "Literal Description", you will generate three versions:
-1.  **Literal Description:** A concise summary of what the user actually did.
-2.  **Corporate Framing:** The resume-ready, buzzword-compliant version of that truth.
-3.  **Meta-Commentary:** A snarky, insightful comment from Steve about the absurdity of the translation.
-
-Generate a response in the specified JSON format, embodying both personas in their respective sections.`;
-
     const prompt = `
     Analyze the following user-provided information and generate a career narrative.
 
@@ -117,7 +102,7 @@ Generate a response in the specified JSON format, embodying both personas in the
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
-                systemInstruction: systemInstruction,
+                systemInstruction: narrativeSystemPrompt,
                 responseMimeType: "application/json",
                 responseSchema: responseSchema,
                 temperature: 0.75,
@@ -151,13 +136,6 @@ export const generateResumeFeedback = async (
     resumeText: string,
     chatHistory: ChatMessage[]
 ): Promise<string> => {
-    const systemInstruction = `You are an expert resume critic and career coach. Your task is to analyze a user's resume against a newly generated 'Corporate Narrative' for one of their projects. 
-    - Be concise, direct, and actionable.
-    - Identify gaps where the resume fails to reflect the key experiences in the narrative.
-    - Suggest specific improvements and rephrasing for bullet points.
-    - If the user asks a follow-up question, answer it in the context of improving their resume based on the provided narrative.
-    - Use markdown for formatting (e.g., lists, bolding).`;
-
     const narrativeContext = `
     **Generated Corporate Narrative for Analysis:**
     - **Summary:** ${narrative.corporateNarrative.summary}
@@ -192,7 +170,7 @@ export const generateResumeFeedback = async (
             model: "gemini-2.5-flash",
             contents: contents,
             config: {
-                systemInstruction: systemInstruction,
+                systemInstruction: resumeFeedbackSystemPrompt,
                 temperature: 0.5,
             },
         });
