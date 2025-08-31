@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import type { NarrativeOutput } from '../types';
+import type { NarrativeOutput, ChatMessage } from '../types';
 
 const API_KEY = process.env.API_KEY;
 
@@ -143,5 +143,62 @@ Generate a response in the specified JSON format, embodying both personas in the
     } catch (error) {
         console.error("Error calling Gemini API:", error);
         throw new Error("The AI service failed to process the request. Please check the console for details.");
+    }
+};
+
+export const generateResumeFeedback = async (
+    narrative: NarrativeOutput,
+    resumeText: string,
+    chatHistory: ChatMessage[]
+): Promise<string> => {
+    const systemInstruction = `You are an expert resume critic and career coach. Your task is to analyze a user's resume against a newly generated 'Corporate Narrative' for one of their projects. 
+    - Be concise, direct, and actionable.
+    - Identify gaps where the resume fails to reflect the key experiences in the narrative.
+    - Suggest specific improvements and rephrasing for bullet points.
+    - If the user asks a follow-up question, answer it in the context of improving their resume based on the provided narrative.
+    - Use markdown for formatting (e.g., lists, bolding).`;
+
+    const narrativeContext = `
+    **Generated Corporate Narrative for Analysis:**
+    - **Summary:** ${narrative.corporateNarrative.summary}
+    - **Key Experiences:** ${narrative.corporateNarrative.keyExperienceBreakdown.map(k => `* ${k.corporateFraming}`).join('\n')}
+    
+    **User's Current Resume:**
+    \`\`\`
+    ${resumeText}
+    \`\`\`
+    `;
+
+    const initialPrompt = `Based on the provided Corporate Narrative and the user's resume, perform an initial analysis. What are the most critical gaps? Provide 2-3 specific, actionable suggestions for improvement.`;
+    
+    const contents: any[] = [
+        { role: 'user', parts: [{ text: narrativeContext }] },
+        { role: 'model', parts: [{ text: "Understood. I will act as an expert resume critic. I have the context of the corporate narrative and the user's resume. Let's begin." }] },
+    ];
+
+    if (chatHistory.length === 0) {
+        contents.push({ role: 'user', parts: [{ text: initialPrompt }] });
+    } else {
+        chatHistory.forEach(message => {
+            contents.push({
+                role: message.role,
+                parts: [{ text: message.text }]
+            });
+        });
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: contents,
+            config: {
+                systemInstruction: systemInstruction,
+                temperature: 0.5,
+            },
+        });
+        return response.text;
+    } catch (error) {
+        console.error("Error calling Gemini API for feedback:", error);
+        throw new Error("The AI service failed to process the feedback request.");
     }
 };

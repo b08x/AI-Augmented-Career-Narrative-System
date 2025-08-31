@@ -25,9 +25,9 @@ export const Loader: React.FC = () => {
 
 
     return (
-        <div className="flex flex-col items-center justify-center p-8 space-y-4 text-center bg-gray-medium/20 rounded-lg">
-            <div className="w-16 h-16 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-lg font-semibold text-brand-light transition-opacity duration-500">{message}</p>
+        <div className="flex flex-col items-center justify-center p-8 space-y-4 text-center bg-charcoal rounded-lg h-full">
+            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-lg font-semibold text-text-primary transition-opacity duration-500">{message}</p>
         </div>
     );
 };

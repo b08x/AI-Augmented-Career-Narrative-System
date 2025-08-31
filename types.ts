@@ -18,3 +18,8 @@ export interface NarrativeOutput {
   corporateNarrative: CorporateNarrative;
   strategicAnalysis: StrategicAnalysis;
 }
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
+}

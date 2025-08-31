@@ -28,9 +28,9 @@ export const OutputPanel: React.FC<OutputPanelProps> = ({ isLoading, narrativeOu
 
     if (!narrativeOutput) {
         return (
-          <div className="text-center p-8 bg-gray-medium/20 rounded-lg h-full flex flex-col justify-center">
-            <h2 className="text-xl font-semibold text-gray-light">Your translated narrative will appear here.</h2>
-            <p className="text-gray-light/80 mt-2">Fill in your details, then click "Generate Narrative" to begin.</p>
+          <div className="text-center p-8 bg-charcoal rounded-lg h-full flex flex-col justify-center">
+            <h2 className="text-xl font-semibold text-text-primary">Your translated narrative will appear here.</h2>
+            <p className="text-slate mt-2">Fill in your details, then click "Generate Narrative" to begin.</p>
           </div>
         );
     }
@@ -54,16 +54,17 @@ export const OutputPanel: React.FC<OutputPanelProps> = ({ isLoading, narrativeOu
             >
                 <p>{renderWithBold(narrativeOutput.corporateNarrative.summary)}</p>
                 
-                <h4 className="text-lg font-semibold mt-6 mb-4 text-brand-light/90">Key Experience Breakdown:</h4>
+                <h4 className="text-lg font-semibold mt-6 mb-4 text-text-primary/90">Key Experience Breakdown:</h4>
                 <div className="space-y-4">
                     {narrativeOutput.corporateNarrative.keyExperienceBreakdown.map((point, index) => (
-                        <div key={index} className="border-l-4 border-brand-secondary/50 pl-4 py-2 bg-gray-dark/40 rounded-r-lg text-sm">
-                            <p><strong className="text-gray-light font-medium">Literal Description:</strong> {point.rawTruth}</p>
-                            <p className="mt-1"><strong className="text-brand-light font-medium">Corporate Framing:</strong> <span className="text-brand-light/90">{point.corporateFraming}</span></p>
-                            <p className="mt-1"><strong className="text-red-400 font-medium">Meta-Commentary:</strong> <em className="text-red-400/90">{point.metaCommentary}</em></p>
+                        <div key={index} className="border-l-4 border-mint pl-4 py-2 bg-background/40 rounded-r-lg text-sm">
+                            <p><strong className="text-text-secondary font-medium">Literal Description:</strong> {point.rawTruth}</p>
+                            <p className="mt-1"><strong className="text-text-primary font-medium">Corporate Framing:</strong> <span className="text-text-primary/90">{point.corporateFraming}</span></p>
+                            <p className="mt-1"><strong className="text-slate font-medium">Meta-Commentary:</strong> <em className="text-slate/90">{point.metaCommentary}</em></p>
                         </div>
                     ))}
                 </div>
+            {/* FIX: Corrected typo in closing tag from NarraviteCard to NarrativeCard */}
             </NarrativeCard>
         </div>
     );

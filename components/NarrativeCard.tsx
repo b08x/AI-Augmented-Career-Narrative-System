@@ -31,22 +31,22 @@ export const NarrativeCard: React.FC<NarrativeCardProps> = ({ title, children, s
     }, [speakableText, isSpeaking]);
 
     const cardClasses = isPrimary 
-        ? "bg-brand-dark/50 border-2 border-brand-secondary shadow-2xl transform lg:scale-105" 
-        : "bg-gray-medium/50 border border-brand-dark/50";
+        ? "bg-charcoal border-2 border-primary shadow-2xl transform lg:scale-105" 
+        : "bg-charcoal border border-slate/50";
 
     return (
         <div className={`rounded-xl p-6 flex flex-col transition-all duration-300 ${cardClasses}`}>
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-brand-secondary">{title}</h3>
+                <h3 className="text-xl font-bold text-primary">{title}</h3>
                 <button 
                     onClick={handleSpeak} 
                     title={isSpeaking ? "Stop Speaking" : "Read Aloud"}
-                    className={`p-2 rounded-full transition-colors ${isSpeaking ? 'bg-red-500' : 'bg-brand-secondary hover:bg-brand-primary'}`}
+                    className={`p-2 rounded-full transition-colors ${isSpeaking ? 'bg-primary' : 'bg-slate hover:bg-slate/80'}`}
                 >
                     <VolumeUpIcon />
                 </button>
             </div>
-            <div className="prose prose-invert prose-p:text-brand-light/90 prose-p:my-2 overflow-y-auto max-h-[400px] flex-grow">
+            <div className="prose prose-invert prose-p:text-text-secondary prose-p:my-2 overflow-y-auto max-h-[400px] flex-grow">
                 {children}
             </div>
         </div>

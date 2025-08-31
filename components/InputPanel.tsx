@@ -162,13 +162,13 @@ export const InputPanel: React.FC<InputPanelProps> = ({
     }, [setRawTruth]);
 
     return (
-        <div className="bg-gray-medium/50 rounded-lg p-6 shadow-xl flex flex-col gap-6 h-full">
+        <div className="bg-charcoal rounded-lg p-6 shadow-xl flex flex-col gap-6 h-full">
             {/* Literal Description */}
             <div className="flex flex-col h-full">
-                <label htmlFor="rawTruth" className="text-lg font-semibold text-brand-light mb-2">
+                <label htmlFor="rawTruth" className="text-lg font-semibold text-text-primary mb-2">
                     Literal Description
                 </label>
-                <p className="text-sm text-gray-light mb-4">
+                <p className="text-sm text-slate mb-4">
                     Explain what you built, why you built it, and the challenges you faced. You can also fetch commit history from a public GitHub repo below.
                 </p>
                 <div className="relative flex-grow min-h-[200px]">
@@ -177,14 +177,14 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                         value={rawTruth}
                         onChange={(e) => setRawTruth(e.target.value)}
                         placeholder="e.g., 'I built a small script to automate my home lighting...'"
-                        className="w-full h-full p-4 pr-12 bg-gray-dark/50 border-2 border-brand-dark rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
+                        className="w-full h-full p-4 pr-12 bg-background/50 border-2 border-slate/50 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary"
                         disabled={isLoading}
                     />
                     <div className="absolute top-3 right-3 flex flex-col gap-2">
-                        <button onClick={toggleRecording} disabled={isLoading || !recognition} title={isRecording ? "Stop Recording" : "Start Recording"} className={`p-2 rounded-full transition-colors ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-brand-secondary hover:bg-brand-primary text-white'} disabled:bg-gray-500`}>
+                        <button onClick={toggleRecording} disabled={isLoading || !recognition} title={isRecording ? "Stop Recording" : "Start Recording"} className={`p-2 rounded-full transition-colors ${isRecording ? 'bg-primary text-white animate-pulse' : 'bg-slate hover:bg-slate/80 text-text-primary'} disabled:bg-slate/50`}>
                             {isRecording ? <StopIcon /> : <MicrophoneIcon />}
                         </button>
-                         <label htmlFor="file-upload" className="cursor-pointer p-2 rounded-full bg-brand-secondary hover:bg-brand-primary text-white" title="Upload Code File">
+                         <label htmlFor="file-upload" className="cursor-pointer p-2 rounded-full bg-slate hover:bg-slate/80 text-text-primary" title="Upload Code File">
                              <UploadIcon />
                          </label>
                          <input id="file-upload" type="file" className="hidden" onChange={handleContentFileChange} accept=".js,.jsx,.ts,.tsx,.py,.rb,.sh,.md,.txt" disabled={isLoading} />
@@ -194,7 +194,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
 
             {/* Target Job Description */}
             <div className="flex flex-col h-full">
-                <label htmlFor="jobDescription" className="text-lg font-semibold text-brand-light mb-2">
+                <label htmlFor="jobDescription" className="text-lg font-semibold text-text-primary mb-2">
                     Target Job Description
                 </label>
                 <div className="flex-grow min-h-[200px]">
@@ -203,7 +203,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                         value={jobDescription}
                         onChange={(e) => setJobDescription(e.target.value)}
                         placeholder="e.g., 'Seeking a proactive Junior Developer with experience in Python...'"
-                        className="w-full h-full p-4 bg-gray-dark/50 border-2 border-brand-dark rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
+                        className="w-full h-full p-4 bg-background/50 border-2 border-slate/50 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary"
                         disabled={isLoading}
                     />
                 </div>
@@ -211,11 +211,11 @@ export const InputPanel: React.FC<InputPanelProps> = ({
 
             {/* Professional Profile */}
             <div>
-                 <label className="text-lg font-semibold text-brand-light mb-2">
+                 <label className="text-lg font-semibold text-text-primary mb-2">
                     Professional Profile (Optional)
                 </label>
                 <div className="mt-2 space-y-4">
-                     <label htmlFor="resume-upload" className="w-full text-sm flex items-center justify-center gap-2 bg-gray-dark/50 border-2 border-dashed border-brand-dark rounded-md p-3 text-gray-light hover:border-brand-secondary hover:text-white transition-colors cursor-pointer">
+                     <label htmlFor="resume-upload" className="w-full text-sm flex items-center justify-center gap-2 bg-background/50 border-2 border-dashed border-slate/50 rounded-md p-3 text-slate hover:border-primary hover:text-white transition-colors cursor-pointer">
                          <UploadIcon />
                          {resumeFile ? `${resumeFile.name}` : 'Upload Resume'}
                      </label>
@@ -225,7 +225,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
 
              {/* Project Context */}
             <div>
-                 <label htmlFor="gitRepoUrl" className="text-lg font-semibold text-brand-light mb-2">
+                 <label htmlFor="gitRepoUrl" className="text-lg font-semibold text-text-primary mb-2">
                     Project Context (Optional)
                 </label>
                 <div className="flex items-stretch gap-2 mt-2">
@@ -235,13 +235,13 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                         value={gitRepoUrl}
                         onChange={(e) => setGitRepoUrl(e.target.value)}
                         placeholder="Public GitHub URL (e.g., https://github.com/owner/repo)"
-                        className="flex-grow w-full p-3 bg-gray-dark/50 border-2 border-brand-dark rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
+                        className="flex-grow w-full p-3 bg-background/50 border-2 border-slate/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary"
                         disabled={isLoading || isFetchingCommits}
                     />
                     <button
                         onClick={handleFetchCommits}
                         disabled={isLoading || isFetchingCommits || !gitRepoUrl}
-                        className="flex-shrink-0 bg-brand-dark hover:bg-brand-primary disabled:bg-gray-medium disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-md transition-colors text-sm flex items-center justify-center min-w-[120px]"
+                        className="flex-shrink-0 bg-slate hover:bg-slate/80 disabled:bg-slate/50 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-md transition-colors text-sm flex items-center justify-center min-w-[120px]"
                     >
                         {isFetchingCommits ? (
                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -258,7 +258,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                 <button
                     onClick={handleGenerate}
                     disabled={isLoading || !rawTruth || !jobDescription}
-                    className="flex items-center justify-center gap-3 bg-brand-secondary hover:bg-brand-primary disabled:bg-gray-medium disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-full transition-all duration-300 ease-in-out shadow-lg transform hover:scale-105 w-full"
+                    className="flex items-center justify-center gap-3 bg-primary hover:bg-primary/80 disabled:bg-slate disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-full transition-all duration-300 ease-in-out shadow-lg transform hover:scale-105 w-full"
                 >
                     <SparklesIcon />
                     {isLoading ? 'Translating Experience...' : 'Generate Narrative'}
