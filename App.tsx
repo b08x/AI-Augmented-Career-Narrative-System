@@ -59,8 +59,9 @@ const App: React.FC = () => {
             setEditedResume(resumeText);
             setResumeHistory([resumeText]);
             if (result.strategicAnalysis) {
-                setOliverChat([{ role: 'model', text: result.strategicAnalysis.oliversPerspective }]);
-                setSteveChat([{ role: 'model', text: result.strategicAnalysis.stevesPerspective }]);
+                const timestamp = new Date().toISOString();
+                setOliverChat([{ role: 'model', text: result.strategicAnalysis.oliversPerspective, timestamp }]);
+                setSteveChat([{ role: 'model', text: result.strategicAnalysis.stevesPerspective, timestamp }]);
             }
             setView('workbench');
         } catch (e: unknown) {
@@ -84,8 +85,9 @@ const App: React.FC = () => {
             setResumeFeedback([{ role: 'model', text: feedback }]);
             setNarrativeOutput(prev => ({ ...prev!, strategicAnalysis }));
             if (automatedAnalysis) {
-                setOliverChat(prev => [...prev, { role: 'model', text: strategicAnalysis.oliversPerspective }]);
-                setSteveChat(prev => [...prev, { role: 'model', text: strategicAnalysis.stevesPerspective }]);
+                const timestamp = new Date().toISOString();
+                setOliverChat(prev => [...prev, { role: 'model', text: strategicAnalysis.oliversPerspective, timestamp }]);
+                setSteveChat(prev => [...prev, { role: 'model', text: strategicAnalysis.stevesPerspective, timestamp }]);
             }
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
@@ -108,8 +110,9 @@ const App: React.FC = () => {
             setResumeFeedback([...newHistory, { role: 'model', text: feedback }]);
             setNarrativeOutput(prev => ({ ...prev!, strategicAnalysis }));
             if (automatedAnalysis) {
-                setOliverChat(prev => [...prev, { role: 'model', text: strategicAnalysis.oliversPerspective }]);
-                setSteveChat(prev => [...prev, { role: 'model', text: strategicAnalysis.stevesPerspective }]);
+                const timestamp = new Date().toISOString();
+                setOliverChat(prev => [...prev, { role: 'model', text: strategicAnalysis.oliversPerspective, timestamp }]);
+                setSteveChat(prev => [...prev, { role: 'model', text: strategicAnalysis.stevesPerspective, timestamp }]);
             }
         } catch (e) {
              const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';

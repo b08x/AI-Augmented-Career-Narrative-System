@@ -1,3 +1,4 @@
+
 export interface KeyExperience {
   rawTruth: string;
   corporateFraming: string;
@@ -22,4 +23,5 @@ export interface NarrativeOutput {
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
+  timestamp?: string;
 }

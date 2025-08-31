@@ -117,7 +117,7 @@ export const WorkbenchPage: React.FC<WorkbenchPageProps> = (props) => {
                         steveChat={props.steveChat}
                         onSendOliver={() => {}} // Implement direct chat later if needed
                         onSendSteve={() => {}} // Implement direct chat later if needed
-                        isLoading={props.isPersonaLoading}
+                        isLoading={props.isFeedbackLoading}
                         automatedAnalysis={props.automatedAnalysis}
                         onToggleAutomatedAnalysis={() => props.setAutomatedAnalysis(!props.automatedAnalysis)}
                     />

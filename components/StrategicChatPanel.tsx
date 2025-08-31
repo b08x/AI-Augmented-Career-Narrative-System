@@ -23,28 +23,43 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ title, messages, isLoading, tit
 
     return (
         <div className="bg-background/50 border border-slate/50 rounded-xl p-4 flex flex-col flex-grow h-1/2">
-            <div className="flex items-center gap-3 mb-4">
-                <Icon className={`h-8 w-8 ${titleColor}`} />
+            <div className="flex items-center mb-4">
                 <h3 className={`text-xl font-bold ${titleColor}`}>{title}</h3>
             </div>
-            <div className="prose prose-invert prose-p:text-text-secondary prose-p:my-2 overflow-y-auto max-h-96 flex-grow pr-2">
+            <div className="overflow-y-auto flex-grow pr-2 space-y-4">
                 {messages.map((msg, index) => (
-                    <div key={index} className="flex gap-3 mb-2">
-                        <div className="rounded-lg max-w-full">
-                            {renderMessage(msg.text)}
+                    <div key={index} className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-charcoal flex-shrink-0 flex items-center justify-center mt-1">
+                            <Icon className={`h-5 w-5 ${titleColor}`} />
+                        </div>
+                        <div className="flex flex-col items-start">
+                            <div className="bg-charcoal rounded-lg p-3 max-w-full text-sm text-text-secondary prose prose-invert prose-p:my-1">
+                                {renderMessage(msg.text)}
+                            </div>
+                            {msg.timestamp && (
+                                <p className="text-xs text-slate/70 mt-1">
+                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                            )}
                         </div>
                     </div>
                 ))}
-                 {isLoading && (
-                    <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 bg-slate rounded-full animate-bounce"></span>
-                        <span className="w-2 h-2 bg-slate rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                        <span className="w-2 h-2 bg-slate rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                {isLoading && (
+                    <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-charcoal flex-shrink-0 flex items-center justify-center mt-1">
+                            <Icon className={`h-5 w-5 ${titleColor}`} />
+                        </div>
+                        <div className="bg-charcoal rounded-lg p-3">
+                            <div className="flex items-center gap-2 h-5">
+                                <span className="w-2 h-2 bg-slate rounded-full animate-bounce"></span>
+                                <span className="w-2 h-2 bg-slate rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                                <span className="w-2 h-2 bg-slate rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                            </div>
+                        </div>
                     </div>
                 )}
                 <div ref={chatEndRef} />
             </div>
-            {/* Input removed for now as chat is reactive */}
         </div>
     );
 };
