@@ -42,6 +42,22 @@ const renderMessageContent = (text: string) => {
     });
 };
 
+const AutosizeTextarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = (props) => {
+    const ref = useRef<HTMLTextAreaElement>(null);
+    const { value } = props;
+
+    useEffect(() => {
+        const textarea = ref.current;
+        if (textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = `${textarea.scrollHeight}px`;
+        }
+    }, [value]);
+
+    return <textarea ref={ref} {...props} />;
+};
+
+
 export const ResumeFeedbackPanel: React.FC<ResumeFeedbackPanelProps> = ({
     resumeText,
     feedback,
@@ -183,11 +199,11 @@ export const ResumeFeedbackPanel: React.FC<ResumeFeedbackPanelProps> = ({
                                         </label>
                                         {selectedFeedbackIds.has(msg.id) && (
                                             <div className="mt-3 animate-fade-in">
-                                                <textarea
+                                                <AutosizeTextarea
                                                     value={feedbackContext[msg.id] || ''}
                                                     onChange={(e) => onFeedbackContextChange(msg.id, e.target.value)}
                                                     placeholder="Add context for the AI (optional)..."
-                                                    className="w-full text-sm p-2 bg-background/50 border border-slate/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary"
+                                                    className="w-full text-sm p-2 bg-background/50 border border-slate/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary resize-none overflow-y-hidden"
                                                     rows={2}
                                                 />
                                             </div>
@@ -220,7 +236,7 @@ export const ResumeFeedbackPanel: React.FC<ResumeFeedbackPanelProps> = ({
             </div>
              <div className="mt-4 border-t border-slate/50 pt-4 flex flex-col gap-2">
                  <div className="relative">
-                     <textarea
+                     <AutosizeTextarea
                          value={chatInput}
                          onChange={(e) => setChatInput(e.target.value)}
                          onKeyDown={(e) => {
@@ -230,7 +246,7 @@ export const ResumeFeedbackPanel: React.FC<ResumeFeedbackPanelProps> = ({
                              }
                          }}
                          placeholder="Ask for more feedback or provide context..."
-                         className="w-full text-sm p-3 pr-24 bg-background/50 border border-slate/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary resize-none"
+                         className="w-full text-sm p-3 pr-24 bg-background/50 border border-slate/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary resize-none overflow-y-hidden"
                          rows={2}
                      />
                      <div className="absolute top-1/2 -translate-y-1/2 right-3 flex items-center gap-1">

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { UploadIcon } from './icons/UploadIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
 
@@ -18,6 +18,19 @@ interface InputPanelProps {
     isGenerated?: boolean;
 }
 
+const useAutosizeTextArea = (
+  textAreaRef: HTMLTextAreaElement | null,
+  value: string
+) => {
+  useEffect(() => {
+    if (textAreaRef) {
+      textAreaRef.style.height = 'auto';
+      textAreaRef.style.height = `${textAreaRef.scrollHeight}px`;
+    }
+  }, [textAreaRef, value]);
+};
+
+
 export const InputPanel: React.FC<InputPanelProps> = ({
     rawTruth,
     setRawTruth,
@@ -35,6 +48,13 @@ export const InputPanel: React.FC<InputPanelProps> = ({
 }) => {
     const [isFetchingCommits, setIsFetchingCommits] = useState(false);
     const [commitError, setCommitError] = useState<string | null>(null);
+    
+    const rawTruthRef = useRef<HTMLTextAreaElement>(null);
+    const jobDescriptionRef = useRef<HTMLTextAreaElement>(null);
+
+    useAutosizeTextArea(rawTruthRef.current, rawTruth);
+    useAutosizeTextArea(jobDescriptionRef.current, jobDescription);
+
 
     const handleResumeFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -100,32 +120,32 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                 <p className="text-sm text-slate mb-4">
                     Explain what you built, why you built it, and the challenges you faced.
                 </p>
-                <div className="relative flex-grow min-h-[200px]">
-                    <textarea
-                        id="rawTruth"
-                        value={rawTruth}
-                        onChange={(e) => setRawTruth(e.target.value)}
-                        placeholder="e.g., 'I built a small script to automate my home lighting...'"
-                        className="w-full h-full p-4 bg-background/50 border-2 border-slate/50 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary"
-                        disabled={isLoading}
-                    />
-                </div>
+                <textarea
+                    ref={rawTruthRef}
+                    rows={1}
+                    id="rawTruth"
+                    value={rawTruth}
+                    onChange={(e) => setRawTruth(e.target.value)}
+                    placeholder="e.g., 'I built a small script to automate my home lighting...'"
+                    className="w-full p-4 bg-background/50 border-2 border-slate/50 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary min-h-[200px] overflow-y-hidden"
+                    disabled={isLoading}
+                />
             </details>
 
             <details open={!isGenerated} className="group">
                 <summary className="text-lg font-semibold text-text-primary list-none group-open:mb-2 cursor-pointer">
                     Target Job Description
                 </summary>
-                 <div className="flex-grow min-h-[200px]">
-                    <textarea
-                        id="jobDescription"
-                        value={jobDescription}
-                        onChange={(e) => setJobDescription(e.target.value)}
-                        placeholder="e.g., 'Seeking a proactive Junior Developer with experience in Python...'"
-                        className="w-full h-full p-4 bg-background/50 border-2 border-slate/50 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary"
-                        disabled={isLoading}
-                    />
-                </div>
+                <textarea
+                    ref={jobDescriptionRef}
+                    rows={1}
+                    id="jobDescription"
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    placeholder="e.g., 'Seeking a proactive Junior Developer with experience in Python...'"
+                    className="w-full p-4 bg-background/50 border-2 border-slate/50 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary min-h-[200px] overflow-y-hidden"
+                    disabled={isLoading}
+                />
             </details>
 
             {/* Professional Profile */}

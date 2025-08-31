@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { UndoIcon } from './icons/UndoIcon';
 
 interface ResumeEditorPanelProps {
@@ -71,9 +71,24 @@ const DiffView: React.FC<{ oldText: string; newText: string }> = ({ oldText, new
     );
 };
 
+const useAutosizeTextArea = (
+  textAreaRef: HTMLTextAreaElement | null,
+  value: string
+) => {
+  useEffect(() => {
+    if (textAreaRef) {
+      textAreaRef.style.height = 'auto';
+      textAreaRef.style.height = `${textAreaRef.scrollHeight}px`;
+    }
+  }, [textAreaRef, value]);
+};
+
 
 export const ResumeEditorPanel: React.FC<ResumeEditorPanelProps> = ({ editedResume, previousResume, onResumeEdit, onUndo, canUndo }) => {
     const [viewMode, setViewMode] = useState<'edit' | 'diff'>('edit');
+    const editorRef = useRef<HTMLTextAreaElement>(null);
+    
+    useAutosizeTextArea(editorRef.current, editedResume);
 
     useEffect(() => {
         // When a new draft is generated, switch to diff view to show changes
@@ -125,10 +140,12 @@ export const ResumeEditorPanel: React.FC<ResumeEditorPanelProps> = ({ editedResu
             </div>
             {viewMode === 'edit' ? (
                 <textarea
+                    ref={editorRef}
+                    rows={1}
                     value={editedResume}
                     onChange={(e) => onResumeEdit(e.target.value)}
                     placeholder="Your resume text will appear here for editing..."
-                    className="w-full h-full min-h-[300px] p-4 bg-background/50 border-2 border-slate/50 rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary font-mono text-sm"
+                    className="w-full min-h-[300px] p-4 bg-background/50 border-2 border-slate/50 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary font-mono text-sm overflow-y-hidden"
                 />
             ) : (
                 <DiffView oldText={previousResume} newText={editedResume} />
