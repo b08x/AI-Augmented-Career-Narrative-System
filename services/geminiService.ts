@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { NarrativeOutput } from '../types';
 
@@ -19,30 +20,30 @@ const responseSchema = {
                     type: Type.STRING,
                     description: "A polished, professional summary of the project, tailored to the job description.",
                 },
-                bingoPoints: {
+                keyExperienceBreakdown: {
                     type: Type.ARRAY,
-                    description: "An array of 2-3 key points, each translated into three versions for 'Recruiter Bingo'.",
+                    description: "An array of 2-3 key experiences, each translated into three versions.",
                     items: {
                         type: Type.OBJECT,
                         properties: {
                             rawTruth: {
                                 type: Type.STRING,
-                                description: "The 'Raw Truth' version of a key point. A blunt, honest description of what was done and why, based on the user's input."
+                                description: "The 'Literal Description' version of a key point. A blunt, honest description of what was done and why, based on the user's input."
                             },
-                            corporateLie: {
+                            corporateFraming: {
                                 type: Type.STRING,
-                                description: "The 'Polished Corporate Lie'. The same point, but translated into impressive-sounding corporate jargon suitable for a resume, aligned with the job description."
+                                description: "The 'Corporate Framing'. The same point, but rephrased into professional language suitable for a resume, aligned with the job description."
                             },
                             metaCommentary: {
                                 type: Type.STRING,
                                 description: "A snarky, meta-commentary on the absurdity of the translation, exposing the gap between reality and corporate-speak. This is from Steve's perspective."
                             }
                         },
-                        required: ["rawTruth", "corporateLie", "metaCommentary"]
+                        required: ["rawTruth", "corporateFraming", "metaCommentary"]
                     }
                 }
             },
-            required: ["summary", "bingoPoints"],
+            required: ["summary", "keyExperienceBreakdown"],
         },
         strategicAnalysis: {
             type: Type.OBJECT,
@@ -65,7 +66,9 @@ const responseSchema = {
 
 export const generateCareerNarrative = async (
     rawTruth: string,
-    jobDescription: string
+    jobDescription: string,
+    resumeText: string,
+    gitRepoUrl: string
 ): Promise<NarrativeOutput> => {
     const systemInstruction = `You are a sophisticated AI acting as a dual-persona career coach, 'Oliver' and 'Steve', for an autodidact developer. Your mission is to translate their raw, authentic project experience into a corporate-legible format while preserving their sanity and integrity.
 
@@ -77,9 +80,9 @@ Persona 2: 'Steve' (The Cynical Realist)
 - Jaded, brilliant, and brutally honest with a dark sense of humor. Understands the corporate hiring process is a game.
 - He performs the "bullshit abstraction" into corporate-speak but also provides his perspective to keep the user grounded. He writes the 'stevesPerspective' and the 'metaCommentary' for the bingo points.
 
-Your main task is to implement the "Recruiter Bingo" mode. For each key technical point you extract from the user's "Raw Truth", you will generate three versions:
-1.  **Raw Truth:** A concise summary of what the user actually did.
-2.  **Polished Corporate Lie:** The resume-ready, buzzword-compliant version of that truth.
+Your main task is to implement the "Recruiter Bingo" mode. For each key technical point you extract from the user's "Literal Description", you will generate three versions:
+1.  **Literal Description:** A concise summary of what the user actually did.
+2.  **Corporate Framing:** The resume-ready, buzzword-compliant version of that truth.
 3.  **Meta-Commentary:** A snarky, insightful comment from Steve about the absurdity of the translation.
 
 Generate a response in the specified JSON format, embodying both personas in their respective sections.`;
@@ -88,7 +91,7 @@ Generate a response in the specified JSON format, embodying both personas in the
     Analyze the following user-provided information and generate a career narrative.
 
     **CONTEXT:**
-    1.  **Project Description (The User's "Raw Truth"):**
+    1.  **Project Description (The User's "Literal Description"):**
         \`\`\`
         ${rawTruth}
         \`\`\`
@@ -96,9 +99,17 @@ Generate a response in the specified JSON format, embodying both personas in the
         \`\`\`
         ${jobDescription}
         \`\`\`
+    3.  **User's Resume (for additional context):**
+        \`\`\`
+        ${resumeText || 'Not provided.'}
+        \`\`\`
+    4.  **User's Git Repository (for code context):**
+        \`\`\`
+        ${gitRepoUrl || 'Not provided.'}
+        \`\`\`
 
     **TASK:**
-    Based on the provided context, generate the response as per the JSON schema. The 'corporateNarrative' section must contain a summary and a list of "Recruiter Bingo" points. The 'strategicAnalysis' must contain perspectives from both Oliver and Steve.
+    Based on the provided context, generate the response as per the JSON schema. The 'corporateNarrative' section must contain a summary and a list of key experience breakdowns. The 'strategicAnalysis' must contain perspectives from both Oliver and Steve.
     `;
 
     try {
@@ -119,8 +130,8 @@ Generate a response in the specified JSON format, embodying both personas in the
         const result = parsedJson as NarrativeOutput;
         if (
             result.corporateNarrative?.summary &&
-            result.corporateNarrative?.bingoPoints &&
-            Array.isArray(result.corporateNarrative.bingoPoints) &&
+            result.corporateNarrative?.keyExperienceBreakdown &&
+            Array.isArray(result.corporateNarrative.keyExperienceBreakdown) &&
             result.strategicAnalysis?.oliversPerspective &&
             result.strategicAnalysis?.stevesPerspective
         ) {

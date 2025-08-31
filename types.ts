@@ -1,12 +1,12 @@
-export interface BingoPoint {
+export interface KeyExperience {
   rawTruth: string;
-  corporateLie: string;
+  corporateFraming: string;
   metaCommentary: string;
 }
 
 export interface CorporateNarrative {
   summary: string;
-  bingoPoints: BingoPoint[];
+  keyExperienceBreakdown: KeyExperience[];
 }
 
 export interface StrategicAnalysis {

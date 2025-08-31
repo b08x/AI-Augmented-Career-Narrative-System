@@ -5,11 +5,14 @@ import { InputPanel } from './components/InputPanel';
 import { OutputPanel } from './components/OutputPanel';
 import { generateCareerNarrative } from './services/geminiService';
 import { NarrativeOutput } from './types';
-import { SparklesIcon } from './components/icons/SparklesIcon';
+import { StrategicAnalysisPanel } from './components/StrategicAnalysisPanel';
 
 const App: React.FC = () => {
     const [rawTruth, setRawTruth] = useState<string>('');
     const [jobDescription, setJobDescription] = useState<string>('');
+    const [resumeFile, setResumeFile] = useState<File | null>(null);
+    const [resumeText, setResumeText] = useState<string>('');
+    const [gitRepoUrl, setGitRepoUrl] = useState<string>('');
     const [narrativeOutput, setNarrativeOutput] = useState<NarrativeOutput | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -29,7 +32,7 @@ const App: React.FC = () => {
         setNarrativeOutput(null);
 
         try {
-            const result = await generateCareerNarrative(rawTruth, jobDescription);
+            const result = await generateCareerNarrative(rawTruth, jobDescription, resumeText, gitRepoUrl);
             setNarrativeOutput(result);
         } catch (e: unknown) {
             const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
@@ -38,39 +41,40 @@ const App: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [rawTruth, jobDescription]);
+    }, [rawTruth, jobDescription, resumeText, gitRepoUrl]);
 
     return (
         <div className="min-h-screen bg-gray-dark font-sans flex flex-col">
             <Header />
-            <main className="flex-grow container mx-auto p-4 md:p-8 flex flex-col gap-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <main className="flex-grow container mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+                <div className="lg:col-span-1">
                     <InputPanel
                         rawTruth={rawTruth}
                         setRawTruth={setRawTruth}
                         jobDescription={jobDescription}
                         setJobDescription={setJobDescription}
-                        isDisabled={isLoading}
+                        gitRepoUrl={gitRepoUrl}
+                        setGitRepoUrl={setGitRepoUrl}
+                        resumeFile={resumeFile}
+                        setResumeFile={setResumeFile}
+                        setResumeText={setResumeText}
+                        isLoading={isLoading}
+                        error={error}
+                        handleGenerate={handleGenerate}
                     />
                 </div>
-
-                <div className="flex flex-col items-center">
-                    <button
-                        onClick={handleGenerate}
-                        disabled={isLoading || !rawTruth || !jobDescription}
-                        className="flex items-center justify-center gap-3 bg-brand-secondary hover:bg-brand-primary disabled:bg-gray-medium disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-full transition-all duration-300 ease-in-out shadow-lg transform hover:scale-105"
-                    >
-                        <SparklesIcon />
-                        {isLoading ? 'Translating Experience...' : 'Generate Narrative'}
-                    </button>
-                    {error && <p className="text-red-400 mt-4 text-center">{error}</p>}
+                <div className="lg:col-span-1">
+                    <OutputPanel 
+                        isLoading={isLoading} 
+                        narrativeOutput={narrativeOutput} 
+                        rawTruth={rawTruth}
+                    />
                 </div>
-                
-                <OutputPanel 
-                  isLoading={isLoading} 
-                  narrativeOutput={narrativeOutput} 
-                  rawTruth={rawTruth}
-                />
+                <div className="lg:col-span-1">
+                    {narrativeOutput && !isLoading && (
+                        <StrategicAnalysisPanel analysis={narrativeOutput.strategicAnalysis} />
+                    )}
+                </div>
             </main>
             <footer className="text-center p-4 text-gray-light text-sm">
                 <p>Built with React, Tailwind, and the Gemini API.</p>
