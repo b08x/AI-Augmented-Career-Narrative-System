@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 export const Header: React.FC = () => {
@@ -9,7 +8,7 @@ export const Header: React.FC = () => {
                     AI-Augmented Career Narrative System
                 </h1>
                 <p className="text-gray-light mt-1">
-                    Translate your authentic experience into a compelling professional story.
+                    Translate raw truth into corporate reality—without losing the plot.
                 </p>
             </div>
         </header>

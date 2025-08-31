@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState } from 'react';
 import { VolumeUpIcon } from './icons/VolumeUpIcon';
 
@@ -7,6 +6,17 @@ interface NarrativeCardProps {
     content: string;
     isPrimary?: boolean;
 }
+
+// Simple markdown parser for bold text
+const renderWithBold = (text: string) => {
+    return text.split(/(\*\*.*?\*\*)/g).map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={index}>{part.slice(2, -2)}</strong>;
+        }
+        return part;
+    });
+};
+
 
 export const NarrativeCard: React.FC<NarrativeCardProps> = ({ title, content, isPrimary = false }) => {
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -22,8 +32,10 @@ export const NarrativeCard: React.FC<NarrativeCardProps> = ({ title, content, is
             setIsSpeaking(false);
             return;
         }
-
-        const utterance = new SpeechSynthesisUtterance(content);
+        
+        // Strip markdown for speech synthesis
+        const plainText = content.replace(/\*\*/g, '');
+        const utterance = new SpeechSynthesisUtterance(plainText);
         utterance.onstart = () => setIsSpeaking(true);
         utterance.onend = () => setIsSpeaking(false);
         utterance.onerror = () => setIsSpeaking(false);
@@ -31,7 +43,7 @@ export const NarrativeCard: React.FC<NarrativeCardProps> = ({ title, content, is
     }, [content, isSpeaking]);
 
     const cardClasses = isPrimary 
-        ? "bg-brand-dark/50 border-2 border-brand-secondary shadow-2xl transform scale-105" 
+        ? "bg-brand-dark/50 border-2 border-brand-secondary shadow-2xl transform lg:scale-105" 
         : "bg-gray-medium/50 border border-brand-dark/50";
 
     return (
@@ -48,7 +60,7 @@ export const NarrativeCard: React.FC<NarrativeCardProps> = ({ title, content, is
             </div>
             <div className="prose prose-invert prose-p:text-brand-light/90 prose-p:my-2 overflow-y-auto max-h-96 flex-grow">
                 {content.split('\n').map((paragraph, index) => (
-                    <p key={index}>{paragraph || '\u00A0'}</p> 
+                    <p key={index}>{paragraph ? renderWithBold(paragraph) : '\u00A0'}</p> 
                 ))}
             </div>
         </div>

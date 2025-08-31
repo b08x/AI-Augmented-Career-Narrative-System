@@ -1,8 +1,8 @@
-
 import React from 'react';
 import type { NarrativeOutput } from '../types';
 import { Loader } from './Loader';
 import { NarrativeCard } from './NarrativeCard';
+import { StrategicAnalysisPanel } from './StrategicAnalysisPanel';
 
 interface OutputPanelProps {
     isLoading: boolean;
@@ -26,12 +26,19 @@ export const OutputPanel: React.FC<OutputPanelProps> = ({ isLoading, narrativeOu
 
     return (
         <div className="space-y-8 animate-fade-in">
-            <h2 className="text-3xl font-bold text-center text-brand-light">Generated Narrative</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <NarrativeCard title="Raw Truth (Your Input)" content={rawTruth} />
-                <NarrativeCard title="Professional Translation" content={narrativeOutput.professionalNarrative} isPrimary />
-                <NarrativeCard title="Technical Evidence" content={narrativeOutput.technicalEvidence} />
+            <div>
+                <h2 className="text-3xl font-bold text-center text-brand-light">Translation Output</h2>
+                <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <NarrativeCard title="Raw Truth (Your Input)" content={rawTruth} />
+                    <NarrativeCard 
+                        title="Corporate Narrative (For Recruiter)" 
+                        content={`${narrativeOutput.corporateNarrative.summary}\n\n**Key Evidence:**\n${narrativeOutput.corporateNarrative.keyEvidence}`}
+                        isPrimary 
+                    />
+                </div>
             </div>
+            
+            <StrategicAnalysisPanel analysis={narrativeOutput.strategicAnalysis} />
         </div>
     );
 };

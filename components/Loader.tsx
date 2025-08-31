@@ -1,14 +1,15 @@
-
 import React from 'react';
 
 export const Loader: React.FC = () => {
     const messages = [
         "Analyzing non-linear learning paths...",
         "Deconstructing corporate jargon...",
-        "Finding the signal in the noise...",
+        "Translating raw truth into corporate reality...",
+        "Calculating jargon tax...",
+        "Highlighting neurodivergent superpowers...",
+        "Engaging cynical realist co-pilot...",
+        "Consulting strategic philosopher...",
         "Grounding claims in technical evidence...",
-        "Bridging authenticity and legibility...",
-        "Generating compelling narrative...",
     ];
 
     const [message, setMessage] = React.useState(messages[0]);

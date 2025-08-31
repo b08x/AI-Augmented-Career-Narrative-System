@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import type { NarrativeOutput } from '../types';
 
@@ -13,23 +12,58 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 const responseSchema = {
     type: Type.OBJECT,
     properties: {
-        professionalNarrative: {
-            type: Type.STRING,
-            description: "A polished, professional summary of the project, highlighting its value and aligning it with corporate expectations. Use action verbs and focus on impact. Frame it as a solution to a problem.",
+        corporateNarrative: {
+            type: Type.OBJECT,
+            properties: {
+                summary: {
+                    type: Type.STRING,
+                    description: "The 'Corporate Fanfic'. A polished, professional summary of the project, tailored to the job description. Uses action verbs and focuses on quantifiable impact where possible.",
+                },
+                keyEvidence: {
+                    type: Type.STRING,
+                    description: "A bulleted list (using '*') of 2-3 specific technical details, architectural choices, or code examples from the 'Raw Truth' that substantiate the summary.",
+                },
+            },
+            required: ["summary", "keyEvidence"],
         },
-        technicalEvidence: {
-            type: Type.STRING,
-            description: "A summary of 1-3 specific code snippets, architectural decisions, or technical challenges from the project description that directly support the claims in the professional narrative. Explain why this evidence is significant in a professional context.",
+        strategicAnalysis: {
+            type: Type.OBJECT,
+            properties: {
+                oliversPerspective: {
+                    type: Type.STRING,
+                    description: "The 'ADHD Superpower Highlight'. An empowering, philosophical analysis from the perspective of 'Oliver'. It reframes perceived flaws (e.g., hyperfixation) as strengths (e.g., deep work capacity) and highlights the inherent value in the user's authentic process.",
+                },
+                stevesRealityCheck: {
+                    type: Type.STRING,
+                    description: "The 'Jaded But Brilliant Translator's' take. A cynical, grounding, and darkly humorous perspective from 'Steve'. It should point out the corporate jargon, the absurdity of the translation, and serve as a warning not to believe the corporate hype. Include a 'Jargon Tax' assessment.",
+                },
+            },
+            required: ["oliversPerspective", "stevesRealityCheck"],
         },
     },
-    required: ["professionalNarrative", "technicalEvidence"],
+    required: ["corporateNarrative", "strategicAnalysis"],
 };
+
 
 export const generateCareerNarrative = async (
     rawTruth: string,
     jobDescription: string
 ): Promise<NarrativeOutput> => {
-    const systemInstruction = `You are an expert career coach and technical writer specializing in translating authentic, project-based technical experience into compelling, corporate-legible narratives. Your purpose is to bridge the gap between an autodidact's non-linear learning path and the expectations of corporate hiring systems. You must maintain technical integrity and ground all claims in the evidence provided. You will always respond in the specified JSON format.`;
+    const systemInstruction = `You are a sophisticated AI acting as a dual-persona career coach, 'Oliver' and 'Steve', for an autodidact developer. Your mission is to translate their raw, authentic project experience into a corporate-legible format while preserving their sanity and integrity.
+
+Persona 1: 'Oliver' (The Strategist)
+- Empathetic, philosophical, and insightful.
+- Sees the user's non-linear path and neurodivergent traits (like ADHD-driven hyperfixation) as unique strengths.
+- Focuses on reframing 'quirks' into valuable skills like 'rapid prototyping,' 'proactive problem identification,' and 'deep work capacity.'
+- His goal is to empower the user by revealing the hidden value in their authentic process.
+
+Persona 2: 'Steve' (The Cynical Realist)
+- Jaded, brilliant, and brutally honest with a dark sense of humor.
+- Understands that the corporate hiring process is a game of "buzzword bingo."
+- His job is to perform the "bullshit abstraction," translating raw truth into corporate-speak without apology, while also pointing out the absurdity of it.
+- He provides a "reality check" to keep the user grounded and prevent them from believing their own corporate hype.
+
+Your task is to analyze the user's 'Raw Truth' and the target 'Job Description', then generate a response in the specified JSON format, embodying both personas in their respective sections.`;
 
     const prompt = `
     Analyze the following user-provided information and generate a career narrative.
@@ -48,7 +82,7 @@ export const generateCareerNarrative = async (
     Based on the provided context, perform the following actions:
     1.  **Analyze:** Identify the key skills, accomplishments, and technical details in the project description.
     2.  **Align:** Map these elements to the requirements, keywords, and desired competencies in the target job description.
-    3.  **Translate & Generate:** Create the professional narrative and technical evidence as per the JSON schema. Ensure the tone is confident, competent, and professional without making claims that cannot be substantiated by the "Raw Truth" input.
+    3.  **Translate & Generate:** Create the response as per the JSON schema, embodying the Oliver and Steve personas for the 'strategicAnalysis' section. Ensure the tone is confident and professional without making claims that cannot be substantiated by the "Raw Truth" input.
     `;
 
     try {
@@ -59,18 +93,21 @@ export const generateCareerNarrative = async (
                 systemInstruction: systemInstruction,
                 responseMimeType: "application/json",
                 responseSchema: responseSchema,
-                temperature: 0.7,
+                temperature: 0.75,
             },
         });
 
         const jsonText = response.text.trim();
         const parsedJson = JSON.parse(jsonText);
 
+        const result = parsedJson as NarrativeOutput;
         if (
-            typeof parsedJson.professionalNarrative === 'string' &&
-            typeof parsedJson.technicalEvidence === 'string'
+            result.corporateNarrative?.summary &&
+            result.corporateNarrative?.keyEvidence &&
+            result.strategicAnalysis?.oliversPerspective &&
+            result.strategicAnalysis?.stevesRealityCheck
         ) {
-            return parsedJson as NarrativeOutput;
+            return result;
         } else {
             throw new Error("Invalid JSON structure received from API.");
         }
