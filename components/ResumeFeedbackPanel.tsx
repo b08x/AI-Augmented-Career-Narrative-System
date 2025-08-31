@@ -1,21 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
-import type { NarrativeOutput, ChatMessage } from '../types';
+
+import React, { useEffect, useRef } from 'react';
+import type { ChatMessage } from '../types';
 import { SparklesIcon } from './icons/SparklesIcon';
-import { SendIcon } from './icons/SendIcon';
-import { UserIcon } from './icons/UserIcon';
 import { BotIcon } from './icons/BotIcon';
 
 interface ResumeFeedbackPanelProps {
-    narrativeOutput: NarrativeOutput | null;
     resumeText: string;
     feedback: ChatMessage[];
     isLoading: boolean;
     onInitialAnalysis: () => void;
-    onSendMessage: (message: string) => void;
+    onSendMessage: (message: string) => void; // Kept for future "add more feedback" functionality
+    selectedFeedbackIds: Set<string>;
+    onToggleFeedbackSelection: (id: string) => void;
+    feedbackContext: Record<string, string>;
+    onFeedbackContextChange: (id: string, context: string) => void;
+    isDrafting: boolean;
+    onUpdateDraft: () => void;
 }
 
-// A simple markdown-like renderer for lists
-const renderMessage = (text: string) => {
+const renderMessageContent = (text: string) => {
     return text.split('\n').map((line, index) => {
         if (line.trim().startsWith('* ') || line.trim().startsWith('- ')) {
             return <li key={index} className="ml-4 list-disc">{line.substring(2)}</li>;
@@ -23,31 +26,29 @@ const renderMessage = (text: string) => {
         if (line.trim().startsWith('1.') || line.trim().startsWith('2.') || line.trim().startsWith('3.')) {
             return <li key={index} className="ml-4 list-decimal">{line.substring(line.indexOf(' '))}</li>
         }
-        return <p key={index}>{line || '\u00A0'}</p>;
+        return <p key={index} className="my-1">{line || '\u00A0'}</p>;
     });
 };
 
+
 export const ResumeFeedbackPanel: React.FC<ResumeFeedbackPanelProps> = ({
-    narrativeOutput,
     resumeText,
     feedback,
     isLoading,
     onInitialAnalysis,
-    onSendMessage
+    selectedFeedbackIds,
+    onToggleFeedbackSelection,
+    feedbackContext,
+    onFeedbackContextChange,
+    isDrafting,
+    onUpdateDraft
 }) => {
-    const [userInput, setUserInput] = useState('');
-    const chatEndRef = useRef<HTMLDivElement>(null);
+    const panelEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        panelEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [feedback, isLoading]);
 
-    const handleSend = () => {
-        if (userInput.trim()) {
-            onSendMessage(userInput);
-            setUserInput('');
-        }
-    };
 
     if (!resumeText) {
         return (
@@ -76,48 +77,72 @@ export const ResumeFeedbackPanel: React.FC<ResumeFeedbackPanelProps> = ({
     }
 
     return (
-        <div className="bg-charcoal rounded-lg p-6 border border-slate/50 flex flex-col h-[600px]">
-            <h3 className="text-lg font-semibold text-slate mb-4 text-center">Resume Feedback</h3>
+        <div className="bg-charcoal rounded-lg p-6 border border-slate/50 flex flex-col h-full max-h-[800px]">
+            <h3 className="text-lg font-semibold text-slate mb-4 text-center">Interactive Resume Feedback</h3>
             <div className="flex-grow overflow-y-auto pr-2 space-y-4">
-                {feedback.map((msg, index) => (
-                    <div key={index} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                        {msg.role === 'model' && <BotIcon className="h-8 w-8 text-mint flex-shrink-0" />}
-                        <div className={`rounded-lg p-3 max-w-sm md:max-w-md lg:max-w-lg ${msg.role === 'user' ? 'bg-slate text-white' : 'bg-background/50 text-text-secondary'}`}>
-                            {renderMessage(msg.text)}
-                        </div>
-                        {msg.role === 'user' && <UserIcon className="h-8 w-8 text-slate flex-shrink-0" />}
-                    </div>
-                ))}
-                {isLoading && (
-                    <div className="flex gap-3">
-                        <BotIcon className="h-8 w-8 text-mint flex-shrink-0" />
-                        <div className="rounded-lg p-3 bg-background/50 text-text-secondary">
-                            <div className="flex items-center gap-2">
-                                <span className="w-2 h-2 bg-mint rounded-full animate-bounce"></span>
-                                <span className="w-2 h-2 bg-mint rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                                <span className="w-2 h-2 bg-mint rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                {feedback.filter(msg => msg.role === 'model').map((msg) => (
+                    <div key={msg.id} className={`p-4 rounded-xl transition-all duration-300 ${selectedFeedbackIds.has(msg.id) ? 'bg-primary/20 border-primary' : 'bg-background/50 border-slate/50'} border`}>
+                        <div className="flex items-start gap-4">
+                            <input
+                                type="checkbox"
+                                id={`feedback-${msg.id}`}
+                                checked={selectedFeedbackIds.has(msg.id)}
+                                onChange={() => onToggleFeedbackSelection(msg.id)}
+                                className="mt-1 h-5 w-5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer flex-shrink-0"
+                            />
+                            <div className="flex-grow">
+                                <label htmlFor={`feedback-${msg.id}`} className="cursor-pointer">
+                                    <div className="flex items-start gap-2">
+                                        <BotIcon className="h-6 w-6 text-mint flex-shrink-0" />
+                                        <div className="text-text-secondary text-sm prose prose-invert max-w-none prose-p:my-0 prose-li:my-0">
+                                            {renderMessageContent(msg.text)}
+                                        </div>
+                                    </div>
+                                </label>
+                                {selectedFeedbackIds.has(msg.id) && (
+                                    <div className="mt-3 animate-fade-in">
+                                        <textarea
+                                            value={feedbackContext[msg.id] || ''}
+                                            onChange={(e) => onFeedbackContextChange(msg.id, e.target.value)}
+                                            placeholder="Add context for the AI (optional)..."
+                                            className="w-full text-sm p-2 bg-background/50 border border-slate/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary"
+                                            rows={2}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
+                ))}
+                 {isLoading && (
+                    <div className="flex justify-center items-center p-4">
+                       <div className="flex items-center gap-2 text-mint">
+                           <span className="w-2 h-2 bg-mint rounded-full animate-bounce"></span>
+                           <span className="w-2 h-2 bg-mint rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                           <span className="w-2 h-2 bg-mint rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                           <p>Getting more feedback...</p>
+                       </div>
+                   </div>
                 )}
-                <div ref={chatEndRef} />
+                <div ref={panelEndRef} />
             </div>
-            <div className="mt-4 flex gap-2 items-center border-t border-slate/50 pt-4">
-                <input
-                    type="text"
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder="Ask a follow-up question..."
-                    className="flex-grow w-full p-3 bg-background/50 border-2 border-slate/50 rounded-full focus:outline-none focus:ring-2 focus:ring-primary transition-colors placeholder:text-text-secondary"
-                    disabled={isLoading}
-                />
+            <div className="mt-4 border-t border-slate/50 pt-4">
                 <button
-                    onClick={handleSend}
-                    disabled={isLoading || !userInput.trim()}
-                    className="p-3 rounded-full bg-primary hover:bg-primary/80 disabled:bg-slate text-white transition-colors flex-shrink-0"
+                    onClick={onUpdateDraft}
+                    disabled={isDrafting || selectedFeedbackIds.size === 0}
+                    className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/80 disabled:bg-slate disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-full transition-colors"
                 >
-                    <SendIcon className="h-5 w-5" />
+                    {isDrafting ? (
+                        <>
+                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                           <span>Generating New Draft...</span>
+                        </>
+                    ) : (
+                        <>
+                            <SparklesIcon className="h-5 w-5" />
+                            Update Resume Draft ({selectedFeedbackIds.size} selected)
+                        </>
+                    )}
                 </button>
             </div>
         </div>

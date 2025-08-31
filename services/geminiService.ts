@@ -69,8 +69,11 @@ const feedbackResponseSchema = {
     type: Type.OBJECT,
     properties: {
         feedback: {
-            type: Type.STRING,
-            description: "The AI's response to the user's resume or query, providing feedback and suggestions.",
+            type: Type.ARRAY,
+            description: "An array of specific, actionable feedback points. Each string in the array is a separate piece of advice and will be displayed on its own card.",
+            items: { 
+                type: Type.STRING 
+            }
         },
         strategicAnalysis: {
             type: Type.OBJECT,
@@ -160,7 +163,7 @@ export const generateResumeFeedback = async (
     narrative: NarrativeOutput,
     resumeText: string,
     chatHistory: ChatMessage[]
-): Promise<{ feedback: string; strategicAnalysis: StrategicAnalysis }> => {
+): Promise<{ feedback: string[]; strategicAnalysis: StrategicAnalysis }> => {
     const narrativeContext = `
     **Generated Corporate Narrative for Analysis:**
     - **Summary:** ${narrative.corporateNarrative.summary}
@@ -176,13 +179,13 @@ export const generateResumeFeedback = async (
     
     const taskPrompt = `
     Now, generate a response in JSON format with two keys: "feedback" and "strategicAnalysis".
-    - "feedback": This should contain your direct advice and answer to the user's latest query.
+    - "feedback": This should be an array of strings. Each string must be a distinct, actionable piece of advice for the user.
     - "strategicAnalysis": This should contain a new analysis from Oliver and Steve commenting on the feedback you just provided. Oliver's perspective should be empowering, while Steve's should be cynical and pragmatic.
     `;
     
     const contents: any[] = [
         { role: 'user', parts: [{ text: narrativeContext }] },
-        { role: 'model', parts: [{ text: "Understood. I have the context. I will provide feedback and a new strategic analysis from Oliver and Steve in the required JSON format." }] },
+        { role: 'model', parts: [{ text: "Understood. I have the context. I will provide feedback as an array of strings and a new strategic analysis from Oliver and Steve in the required JSON format." }] },
     ];
 
     if (chatHistory.length === 0) {
@@ -215,16 +218,60 @@ export const generateResumeFeedback = async (
 
         if (
             parsedJson.feedback &&
+            Array.isArray(parsedJson.feedback) &&
             parsedJson.strategicAnalysis &&
             parsedJson.strategicAnalysis.oliversPerspective &&
             parsedJson.strategicAnalysis.stevesPerspective
         ) {
-            return parsedJson as { feedback: string; strategicAnalysis: StrategicAnalysis };
+            return parsedJson as { feedback: string[]; strategicAnalysis: StrategicAnalysis };
         } else {
             throw new Error("Invalid JSON structure received for feedback from API.");
         }
     } catch (error) {
         console.error("Error calling Gemini API for feedback:", error);
         throw new Error("The AI service failed to process the feedback request.");
+    }
+};
+
+export const generateResumeDraft = async (
+    currentResume: string,
+    selectedFeedback: ChatMessage[],
+    context: Record<string, string>
+): Promise<string> => {
+    const feedbackWithContext = selectedFeedback.map(f => `
+    - **Feedback:** ${f.text}
+    - **User's Additional Context:** ${context[f.id] || 'None provided.'}
+    `).join('');
+
+    const prompt = `
+    You are an expert resume writer. Your task is to revise the following resume based on the provided feedback.
+
+    **Current Resume Draft:**
+    \`\`\`
+    ${currentResume}
+    \`\`\`
+
+    **Selected Feedback and User Context to Address:**
+    ${feedbackWithContext}
+
+    **Instructions:**
+    1.  Carefully consider each piece of feedback and the user's additional context.
+    2.  Rewrite the resume to incorporate the suggested changes.
+    3.  Maintain a professional tone and format.
+    4.  Return ONLY the full, updated resume text. Do not include any other commentary, headings, or explanations.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                temperature: 0.4,
+            },
+        });
+        return response.text;
+    } catch (error) {
+        console.error("Error calling Gemini API for draft generation:", error);
+        throw new Error("The AI service failed to generate a new resume draft.");
     }
 };

@@ -32,6 +32,12 @@ interface WorkbenchPageProps {
     isFeedbackLoading: boolean;
     onInitialAnalysis: () => void;
     onSendMessage: (message: string) => void;
+    selectedFeedbackIds: Set<string>;
+    onToggleFeedbackSelection: (id: string) => void;
+    feedbackContext: Record<string, string>;
+    onFeedbackContextChange: (id: string, context: string) => void;
+    isDrafting: boolean;
+    onUpdateDraft: () => void;
     // Resume Editor Props
     editedResume: string;
     onResumeEdit: (newText: string) => void;
@@ -96,13 +102,19 @@ export const WorkbenchPage: React.FC<WorkbenchPageProps> = (props) => {
                                 onUndo={props.onUndo}
                                 canUndo={props.canUndo}
                             />
-                            <ResumeFeedbackPanel 
-                                narrativeOutput={props.narrativeOutput}
+                            <ResumeFeedbackPanel
+                                // FIX: Removed unsupported 'narrativeOutput' prop as it's not defined in ResumeFeedbackPanelProps.
                                 resumeText={props.resumeText}
                                 feedback={props.feedback}
                                 isLoading={props.isFeedbackLoading}
                                 onInitialAnalysis={props.onInitialAnalysis}
                                 onSendMessage={props.onSendMessage}
+                                selectedFeedbackIds={props.selectedFeedbackIds}
+                                onToggleFeedbackSelection={props.onToggleFeedbackSelection}
+                                feedbackContext={props.feedbackContext}
+                                onFeedbackContextChange={props.onFeedbackContextChange}
+                                isDrafting={props.isDrafting}
+                                onUpdateDraft={props.onUpdateDraft}
                             />
                         </>
                      )}

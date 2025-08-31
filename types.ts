@@ -21,6 +21,7 @@ export interface NarrativeOutput {
 }
 
 export interface ChatMessage {
+  id: string;
   role: 'user' | 'model';
   text: string;
   timestamp?: string;
